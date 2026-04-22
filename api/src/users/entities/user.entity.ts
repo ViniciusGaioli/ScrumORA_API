@@ -1,0 +1,23 @@
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { ProjetoUsuario } from '../../projeto_usuario/entities/projeto_usuario.entity';
+
+@Entity('usuario')
+export class User {
+    @PrimaryGeneratedColumn({ type: 'int' })
+    id!: number;
+
+    @Column({ type: 'varchar', length: 50 })
+    nome!: string;
+
+    @Column({ type: 'varchar', length: 255, unique: true })
+    email!: string;
+
+    @Column({ type: 'varchar', length: 255, select: false })
+    senha!: string;
+
+    @Column({ type: 'varchar', length: 500, nullable: true, name: 'foto_perfil' })
+    fotoPerfil?: string;
+
+    @OneToMany(() => ProjetoUsuario, (pu) => pu.usuario)
+    projetos!: ProjetoUsuario[];
+}

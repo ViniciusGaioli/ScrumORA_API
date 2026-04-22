@@ -1,0 +1,53 @@
+services:
+      mariadb:
+          image: mariadb:11.4
+          container_name: scrumora_db
+          restart: unless-stopped
+          environment:
+              MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+              MARIADB_DATABASE: ${DB_NAME}
+              MARIADB_USER: ${DB_USER}
+              MARIADB_PASSWORD: ${DB_PASSWORD}
+          ports:
+              - "${DB_EXTERNAL_PORT}:3306"
+          volumes: 
+              - mariadb_data:/var/lib/mysql
+          networks: 
+              - scrumora_net
+          healthcheck:
+              test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+              interval: 10s
+              timeout: 5s
+              retries: 10
+
+      api:
+        build:
+            context: ./api
+            dockerfile: Dockerfile
+        container_name: scrumora_api
+        restart: unless-stopped
+        depends_on:
+            mariadb:
+              condition: service_healthy
+        environment:
+            DB_HOST: ${DB_HOST}
+            DB_PORT: ${DB_PORT}
+            DB_USER: ${DB_USER}
+            DB_PASSWORD: ${DB_PASSWORD}
+            DB_NAME: ${DB_NAME}
+            NODE_ENV: ${NODE_ENV}
+        ports:
+            - "${API_PORT}:3000"
+        volumes:
+            - ./api:/app          
+            - /app/node_modules  
+        networks:
+            - scrumora_net
+        command: npm run start:dev
+
+volumes:
+  mariadb_data:
+
+networks:
+  scrumora_net:
+    driver: bridge
