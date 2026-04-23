@@ -3,7 +3,7 @@ import { ProjetoUsuarioService } from './projeto_usuario.service';
 import { CreateProjetoUsuarioDto } from './dto/create-projeto_usuario.dto';
 import { UpdateProjetoUsuarioDto } from './dto/update-projeto_usuario.dto';
 
-@Controller('projeto-usuario')
+@Controller('projeto-usuarios')
 export class ProjetoUsuarioController {
   constructor(private readonly service: ProjetoUsuarioService) {}
 

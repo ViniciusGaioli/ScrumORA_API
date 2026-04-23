@@ -1,5 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany } from 'typeorm';
 import { ProjetoUsuario } from '../../projeto_usuario/entities/projeto_usuario.entity';
+import { Equipe } from 'src/equipe/entities/equipe.entity';
+import { AtividadeResponsavel } from 'src/atividade-responsavel/entities/atividade-responsavel.entity';
 
 @Entity('usuario')
 export class User {
@@ -20,4 +22,10 @@ export class User {
 
     @OneToMany(() => ProjetoUsuario, (pu) => pu.usuario)
     projetos!: ProjetoUsuario[];
+
+    @ManyToMany(() => Equipe, (equipe) => equipe.usuarios)
+    equipes!: Equipe[];
+
+    @OneToMany(() => AtividadeResponsavel, (ar) => ar.usuario)
+    atividadesResponsavel!: AtividadeResponsavel[];
 }

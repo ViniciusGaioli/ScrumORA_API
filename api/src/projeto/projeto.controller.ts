@@ -1,11 +1,12 @@
-import {
-  Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, HttpCode,
-} from '@nestjs/common';
+import {Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, HttpCode,UseGuards,} from '@nestjs/common';
 import { ProjetoService } from './projeto.service';
 import { CreateProjetoDto } from './dto/create-projeto.dto';
 import { UpdateProjetoDto } from './dto/update-projeto.dto';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import type { UsuarioAtual } from 'src/common/decorators/current-user.decorator';
 
-@Controller('projeto')
+@Controller('projetos')
 export class ProjetoController {
   constructor(private readonly projetoService: ProjetoService) {}
 
@@ -15,7 +16,9 @@ export class ProjetoController {
   }
 
   @Get()
-  findAll() {
+  @UseGuards(JwtAuthGuard)
+  findAll(@CurrentUser() user: UsuarioAtual) {
+    console.log('Usuário autenticado:', user);
     return this.projetoService.findAll();
   }
 

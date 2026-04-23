@@ -9,6 +9,15 @@ import { User } from './users/entities/user.entity';
 import { Projeto } from './projeto/entities/projeto.entity';
 import { ProjetoUsuarioModule } from './projeto_usuario/projeto_usuario.module';
 import { ProjetoUsuario } from './projeto_usuario/entities/projeto_usuario.entity';
+import { EquipeModule } from './equipe/equipe.module';
+import { Equipe } from './equipe/entities/equipe.entity';
+import { AtividadeModule } from './atividade/atividade.module';
+import { Atividade } from './atividade/entities/atividade.entity';
+import { SprintModule } from './sprint/sprint.module';
+import { Sprint } from './sprint/entities/sprint.entity';
+import { AtividadeResponsavelModule } from './atividade-responsavel/atividade-responsavel.module';
+import { AtividadeResponsavel } from './atividade-responsavel/entities/atividade-responsavel.entity';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -22,7 +31,7 @@ import { ProjetoUsuario } from './projeto_usuario/entities/projeto_usuario.entit
         username: config.get<string>('DB_USER'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
-        entities: [User, Projeto, ProjetoUsuario],
+        entities: [User, Projeto, ProjetoUsuario, Equipe, Atividade, Sprint, AtividadeResponsavel],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         synchronize: true,
         logging: ['error', 'warn'],
@@ -31,6 +40,11 @@ import { ProjetoUsuario } from './projeto_usuario/entities/projeto_usuario.entit
     UsersModule,
     ProjetoModule,
     ProjetoUsuarioModule,
+    EquipeModule,
+    AtividadeModule,
+    SprintModule,
+    AtividadeResponsavelModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
