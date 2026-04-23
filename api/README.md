@@ -1,3 +1,11 @@
+Diagrama da API 
+<img width="1673" height="1096" alt="diagramaEntidadeRelacionamento" src="https://github.com/user-attachments/assets/548daae0-fcc8-49c9-b5d4-71ce7dfafc35" />
+
+
+
+
+
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
