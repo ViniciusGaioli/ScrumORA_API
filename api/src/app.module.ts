@@ -18,6 +18,9 @@ import { Sprint } from './sprint/entities/sprint.entity';
 import { AtividadeResponsavelModule } from './atividade-responsavel/atividade-responsavel.module';
 import { AtividadeResponsavel } from './atividade-responsavel/entities/atividade-responsavel.entity';
 import { AuthModule } from './auth/auth.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -45,8 +48,9 @@ import { AuthModule } from './auth/auth.module';
     SprintModule,
     AtividadeResponsavelModule,
     AuthModule,
+    CommonModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, {provide: APP_GUARD, useClass: JwtAuthGuard}],
 })
 export class AppModule {}

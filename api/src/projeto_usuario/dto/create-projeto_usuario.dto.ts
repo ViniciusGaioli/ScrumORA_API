@@ -6,10 +6,6 @@ export class CreateProjetoUsuarioDto {
     @IsPositive()
     usuarioId!: number;
 
-    @IsInt()
-    @IsPositive()
-    projetoId!: number;
-
     @IsEnum(Papel)
     papel!: Papel;
 }

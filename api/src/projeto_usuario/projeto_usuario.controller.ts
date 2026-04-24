@@ -1,43 +1,60 @@
-import {Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, HttpCode, Query,} from '@nestjs/common';
+import {
+  Controller, Get, Post, Body, Param, Patch, Delete,
+  ParseIntPipe, HttpCode, UseGuards,
+} from '@nestjs/common';
 import { ProjetoUsuarioService } from './projeto_usuario.service';
 import { CreateProjetoUsuarioDto } from './dto/create-projeto_usuario.dto';
 import { UpdateProjetoUsuarioDto } from './dto/update-projeto_usuario.dto';
+import { PapelProjetoGuard } from '../common/guards/papel-projeto.guard';
+import { PapeisRequeridos } from '../common/decorators/papeis-requeridos.decorator';
+import { Papel } from './enums/papel.enum';
 
-@Controller('projeto-usuarios')
+@Controller('projetos/:projetoId/membros')
+@UseGuards(PapelProjetoGuard)
 export class ProjetoUsuarioController {
   constructor(private readonly service: ProjetoUsuarioService) {}
 
   @Post()
-  create(@Body() dto: CreateProjetoUsuarioDto) {
-    return this.service.create(dto);
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
+  create(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Body() dto: CreateProjetoUsuarioDto,
+  ) {
+    return this.service.create(projetoId, dto);
   }
 
   @Get()
-  findAll(
-    @Query('projetoId') projetoId?: string,
-    @Query('usuarioId') usuarioId?: string,
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER, Papel.DEVELOPER)
+  findAll(@Param('projetoId', ParseIntPipe) projetoId: number) {
+    return this.service.findAllByProjeto(projetoId);
+  }
+
+  @Get(':usuarioId')
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER, Papel.DEVELOPER)
+  findOne(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('usuarioId', ParseIntPipe) usuarioId: number,
   ) {
-    if (projetoId) return this.service.findByProjeto(Number(projetoId));
-    if (usuarioId) return this.service.findByUsuario(Number(usuarioId));
-    return this.service.findAll();
+    return this.service.findOne(projetoId, usuarioId);
   }
 
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.service.findOne(id);
-  }
-
-  @Patch(':id')
+  @Patch(':usuarioId')
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('usuarioId', ParseIntPipe) usuarioId: number,
     @Body() dto: UpdateProjetoUsuarioDto,
   ) {
-    return this.service.update(id, dto);
+    return this.service.update(projetoId, usuarioId, dto);
   }
 
-  @Delete(':id')
+  @Delete(':usuarioId')
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   @HttpCode(204)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.service.remove(id);
+  remove(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('usuarioId', ParseIntPipe) usuarioId: number,
+  ) {
+    return this.service.remove(projetoId, usuarioId);
   }
 }

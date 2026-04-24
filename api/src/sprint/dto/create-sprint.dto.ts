@@ -15,8 +15,4 @@ export class CreateSprintDto {
     @IsOptional()
     @IsEnum(StatusSprint)
     status?: StatusSprint;
-
-    @IsInt()
-    @IsPositive()
-    projetoId!: number;
 }

@@ -4,8 +4,4 @@ export class CreateEquipeDto {
     @IsString()
     @Length(1, 50)
     nome!: string;
-
-    @IsInt()
-    @IsPositive()
-    projetoId!: number;
 }

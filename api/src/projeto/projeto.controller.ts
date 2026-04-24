@@ -1,24 +1,30 @@
-import {Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, HttpCode,UseGuards,} from '@nestjs/common';
+import {
+  Controller, Get, Post, Body, Param, Patch, Delete,
+  ParseIntPipe, HttpCode, UseGuards,
+} from '@nestjs/common';
 import { ProjetoService } from './projeto.service';
 import { CreateProjetoDto } from './dto/create-projeto.dto';
 import { UpdateProjetoDto } from './dto/update-projeto.dto';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import type { UsuarioAtual } from 'src/common/decorators/current-user.decorator';
+import { PapelProjetoGuard } from '../common/guards/papel-projeto.guard';
+import { PapeisRequeridos } from '../common/decorators/papeis-requeridos.decorator';
+import { Papel } from '../projeto_usuario/enums/papel.enum';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { UsuarioAtual } from '../common/decorators/current-user.decorator';
 
 @Controller('projetos')
 export class ProjetoController {
   constructor(private readonly projetoService: ProjetoService) {}
 
   @Post()
-  create(@Body() dto: CreateProjetoDto) {
-    return this.projetoService.create(dto);
+  create(
+    @CurrentUser() user: UsuarioAtual,
+    @Body() dto: CreateProjetoDto,
+  ) {
+    return this.projetoService.create(user.id, dto);
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
-  findAll(@CurrentUser() user: UsuarioAtual) {
-    console.log('Usuário autenticado:', user);
+  findAll() {
     return this.projetoService.findAll();
   }
 
@@ -28,6 +34,8 @@ export class ProjetoController {
   }
 
   @Patch(':id')
+  @UseGuards(PapelProjetoGuard)
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateProjetoDto,
@@ -36,6 +44,8 @@ export class ProjetoController {
   }
 
   @Delete(':id')
+  @UseGuards(PapelProjetoGuard)
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   @HttpCode(204)
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.projetoService.remove(id);

@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Projeto } from './entities/projeto.entity';
+import { ProjetoUsuario } from '../projeto_usuario/entities/projeto_usuario.entity';
+import { User } from '../users/entities/user.entity';
+import { Papel } from '../projeto_usuario/enums/papel.enum';
 import { CreateProjetoDto } from './dto/create-projeto.dto';
 import { UpdateProjetoDto } from './dto/update-projeto.dto';
 
@@ -10,11 +13,29 @@ export class ProjetoService {
   constructor(
     @InjectRepository(Projeto)
     private readonly projetoRepo: Repository<Projeto>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+    private readonly dataSource: DataSource,
   ) {}
 
-  create(dto: CreateProjetoDto): Promise<Projeto> {
-    const projeto = this.projetoRepo.create(dto);
-    return this.projetoRepo.save(projeto);
+  async create(userId: number, dto: CreateProjetoDto): Promise<Projeto> {
+    const criador = await this.userRepo.findOne({ where: { id: userId } });
+    if (!criador) {
+      throw new NotFoundException(`Usuário ${userId} não encontrado`);
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const projeto = manager.create(Projeto, dto);
+      const projetoSalvo = await manager.save(projeto);
+
+      const vinculo = manager.create(ProjetoUsuario, {
+        usuario: criador,
+        projeto: projetoSalvo,
+        papel: Papel.SCRUM_MASTER,
+      });
+      await manager.save(vinculo);
+      return projetoSalvo;
+    });
   }
 
   findAll(): Promise<Projeto[]> {

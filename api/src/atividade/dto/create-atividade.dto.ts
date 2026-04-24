@@ -24,10 +24,6 @@ export class CreateAtividadeDto {
     @IsBoolean()
     arquivada?: boolean;
 
-    @IsInt()
-    @IsPositive()
-    projetoId!: number;
-
     @IsOptional()
     @IsInt()
     @IsPositive()

@@ -15,10 +15,10 @@ export class SprintService {
     private readonly projetoRepo: Repository<Projeto>,
   ) {}
 
-  async create(dto: CreateSprintDto): Promise<Sprint> {
-    const projeto = await this.projetoRepo.findOne({ where: { id: dto.projetoId } });
+  async create(projetoId: number, dto: CreateSprintDto): Promise<Sprint> {
+    const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
     if (!projeto) {
-      throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
+      throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
     }
 
     this.validarDatas(dto.dataInicio, dto.dataFim);
@@ -34,8 +34,11 @@ export class SprintService {
     return this.sprintRepo.save(sprint);
   }
 
-  findAll(): Promise<Sprint[]> {
-    return this.sprintRepo.find({ relations: ['projeto'] });
+  findAll(projetoId: number): Promise<Sprint[]> {
+    return this.sprintRepo.find({
+      where: { projeto: { id: projetoId } },
+      relations: ['projeto'],
+    });
   }
 
   async findOne(id: number): Promise<Sprint> {
@@ -47,28 +50,15 @@ export class SprintService {
     return sprint;
   }
 
-  findByProjeto(projetoId: number): Promise<Sprint[]> {
-    return this.sprintRepo.find({ where: { projeto: { id: projetoId } } });
-  }
-
   async update(id: number, dto: UpdateSprintDto): Promise<Sprint> {
     const sprint = await this.findOne(id);
-
-    if (dto.projetoId !== undefined) {
-      const projeto = await this.projetoRepo.findOne({ where: { id: dto.projetoId } });
-      if (!projeto) throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
-      sprint.projeto = projeto;
-    }
 
     if (dto.nome !== undefined) sprint.nome = dto.nome;
     if (dto.status !== undefined) sprint.status = dto.status;
     if (dto.dataInicio !== undefined) sprint.dataInicio = new Date(dto.dataInicio);
     if (dto.dataFim !== undefined) sprint.dataFim = new Date(dto.dataFim);
 
-    this.validarDatas(
-      sprint.dataInicio.toISOString(),
-      sprint.dataFim.toISOString(),
-    );
+    this.validarDatas(sprint.dataInicio, sprint.dataFim);
 
     return this.sprintRepo.save(sprint);
   }
@@ -80,7 +70,7 @@ export class SprintService {
     }
   }
 
-  private validarDatas(inicio: string, fim: string): void {
+  private validarDatas(inicio: string | Date, fim: string | Date): void {
     if (new Date(fim) < new Date(inicio)) {
       throw new BadRequestException('A data de fim não pode ser anterior à data de início');
     }

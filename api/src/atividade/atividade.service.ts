@@ -18,10 +18,10 @@ export class AtividadeService {
     private readonly sprintRepo: Repository<Sprint>,
   ) {}
 
-  async create(dto: CreateAtividadeDto): Promise<Atividade> {
-    const projeto = await this.projetoRepo.findOne({ where: { id: dto.projetoId } });
+  async create(projetoId: number,dto: CreateAtividadeDto): Promise<Atividade> {
+    const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
     if (!projeto) {
-      throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
+      throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
     }
 
     let sprint: Sprint | undefined;
@@ -47,8 +47,11 @@ export class AtividadeService {
     return this.atividadeRepo.save(atividade);
   }
 
-  findAll(): Promise<Atividade[]> {
-    return this.atividadeRepo.find({ relations: ['projeto'] });
+  findAll(projetoId: number): Promise<Atividade[]> {
+    return this.atividadeRepo.find({
+      where: { projeto: { id: projetoId } },
+      relations: ['projeto'],
+    });
   }
 
   async findOne(id: number): Promise<Atividade> {
@@ -60,22 +63,8 @@ export class AtividadeService {
     return atividade;
   }
 
-  findByProjeto(projetoId: number): Promise<Atividade[]> {
-    return this.atividadeRepo.find({
-      where: { projeto: { id: projetoId } },
-    });
-  }
-
   async update(id: number, dto: UpdateAtividadeDto): Promise<Atividade> {
     const atividade = await this.findOne(id);
-
-    if (dto.projetoId !== undefined) {
-      const projeto = await this.projetoRepo.findOne({ where: { id: dto.projetoId } });
-      if (!projeto) {
-        throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
-      }
-      atividade.projeto = projeto;
-    }
 
     if (dto.sprintId !== undefined) {
       if (dto.sprintId === null) {

@@ -33,13 +33,11 @@ export class AtividadeResponsavelService {
       );
     }
 
-    // 1) Atividade existe?
     const atividade = await this.atividadeRepo.findOne({ where: { id: dto.atividadeId } });
     if (!atividade) {
       throw new NotFoundException(`Atividade ${dto.atividadeId} não encontrada`);
     }
 
-    // 2) Todos os usuários existem?
     let usuarios: User[] = [];
     if (usuarioIds.length > 0) {
       usuarios = await this.userRepo.find({ where: { id: In(usuarioIds) } });
@@ -50,7 +48,6 @@ export class AtividadeResponsavelService {
       }
     }
 
-    // 3) Todas as equipes existem?
     let equipes: Equipe[] = [];
     if (equipeIds.length > 0) {
       equipes = await this.equipeRepo.find({ where: { id: In(equipeIds) } });
@@ -60,8 +57,6 @@ export class AtividadeResponsavelService {
         throw new NotFoundException(`Equipes não encontradas: ${faltando.join(', ')}`);
       }
     }
-
-    // 4) Duplicatas — alguém já é responsável?
     const jaExistentes = await this.arRepo.find({
       where: { atividade: { id: dto.atividadeId } },
       relations: ['usuario', 'equipe'],
@@ -84,7 +79,6 @@ export class AtividadeResponsavelService {
       throw new ConflictException(msgs.join('; '));
     }
 
-    // 5) Monta e salva tudo numa transação
     const novos: AtividadeResponsavel[] = [
       ...usuarios.map((u) => this.arRepo.create({ atividade, usuario: u })),
       ...equipes.map((e) => this.arRepo.create({ atividade, equipe: e })),

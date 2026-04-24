@@ -38,7 +38,7 @@ services:
             JWT_SECRET: ${JWT_SECRET} 
             NODE_ENV: ${NODE_ENV}
             CHOKIDAR_USEPOLLING: "true"
-            CHOKIDAR_INTERVAL: "100"
+            CHOKIDAR_INTERVAL: "10"
         ports:
             - "${API_PORT}:3000"
         volumes:

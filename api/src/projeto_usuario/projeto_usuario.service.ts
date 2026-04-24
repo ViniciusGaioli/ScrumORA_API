@@ -18,61 +18,73 @@ export class ProjetoUsuarioService {
     private readonly projetoRepo: Repository<Projeto>,
   ) {}
 
-  async create(dto: CreateProjetoUsuarioDto): Promise<ProjetoUsuario> {
-    const usuario = await this.userRepo.findOne({ where: { id: dto.usuarioId } });
-    if (!usuario) throw new NotFoundException(`Usuário ${dto.usuarioId} não encontrado`);
+  async create(projetoId: number, dto: CreateProjetoUsuarioDto): Promise<ProjetoUsuario> {
+    const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
+    if (!projeto) {
+      throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
+    }
 
-    const projeto = await this.projetoRepo.findOne({ where: { id: dto.projetoId } });
-    if (!projeto) throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
+    const usuario = await this.userRepo.findOne({ where: { id: dto.usuarioId } });
+    if (!usuario) {
+      throw new NotFoundException(`Usuário ${dto.usuarioId} não encontrado`);
+    }
 
     const jaExiste = await this.puRepo.findOne({
-      where: { usuario: { id: dto.usuarioId }, projeto: { id: dto.projetoId } },
+      where: {
+        usuario: { id: dto.usuarioId },
+        projeto: { id: projetoId },
+      },
     });
     if (jaExiste) {
-      throw new ConflictException('Este usuário já está associado a este projeto');
+      throw new ConflictException('Este usuário já é membro deste projeto');
     }
 
     const pu = this.puRepo.create({ usuario, projeto, papel: dto.papel });
     return this.puRepo.save(pu);
   }
 
-  findAll(): Promise<ProjetoUsuario[]> {
-    return this.puRepo.find({ relations: ['usuario', 'projeto'] });
-  }
-
-  async findOne(id: number): Promise<ProjetoUsuario> {
-    const pu = await this.puRepo.findOne({
-      where: { id },
-      relations: ['usuario', 'projeto'],
-    });
-    if (!pu) throw new NotFoundException(`Associação ${id} não encontrada`);
-    return pu;
-  }
-
-  findByProjeto(projetoId: number): Promise<ProjetoUsuario[]> {
+  findAllByProjeto(projetoId: number): Promise<ProjetoUsuario[]> {
     return this.puRepo.find({
       where: { projeto: { id: projetoId } },
       relations: ['usuario'],
     });
   }
 
-  findByUsuario(usuarioId: number): Promise<ProjetoUsuario[]> {
-    return this.puRepo.find({
-      where: { usuario: { id: usuarioId } },
-      relations: ['projeto'],
+  async findOne(projetoId: number, usuarioId: number): Promise<ProjetoUsuario> {
+    const pu = await this.puRepo.findOne({
+      where: {
+        projeto: { id: projetoId },
+        usuario: { id: usuarioId },
+      },
+      relations: ['usuario', 'projeto'],
     });
+    if (!pu) {
+      throw new NotFoundException(
+        `Usuário ${usuarioId} não é membro do projeto ${projetoId}`,
+      );
+    }
+    return pu;
   }
 
-  async update(id: number, dto: UpdateProjetoUsuarioDto): Promise<ProjetoUsuario> {
-    const pu = await this.findOne(id);
+  async update(
+    projetoId: number,
+    usuarioId: number,
+    dto: UpdateProjetoUsuarioDto,
+  ): Promise<ProjetoUsuario> {
+    const pu = await this.findOne(projetoId, usuarioId);
     pu.papel = dto.papel;
     return this.puRepo.save(pu);
   }
 
-  async remove(id: number): Promise<void> {
-    const result = await this.puRepo.delete(id);
+  async remove(projetoId: number, usuarioId: number): Promise<void> {
+    const result = await this.puRepo.delete({
+      projeto: { id: projetoId },
+      usuario: { id: usuarioId },
+    });
     if (result.affected === 0) {
-      throw new NotFoundException(`Associação ${id} não encontrada`);
+      throw new NotFoundException(
+        `Usuário ${usuarioId} não é membro do projeto ${projetoId}`,
+      );
     }
   }
 }

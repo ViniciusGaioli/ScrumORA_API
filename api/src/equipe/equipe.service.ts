@@ -1,11 +1,11 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Equipe } from './entities/equipe.entity';
 import { Projeto } from '../projeto/entities/projeto.entity';
+import { User } from '../users/entities/user.entity';
 import { CreateEquipeDto } from './dto/create-equipe.dto';
 import { UpdateEquipeDto } from './dto/update-equipe.dto';
-import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class EquipeService {
@@ -18,49 +18,36 @@ export class EquipeService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async create(dto: CreateEquipeDto): Promise<Equipe> {
-    const projeto = await this.projetoRepo.findOne({ where: { id: dto.projetoId } });
+  async create(projetoId: number, dto: CreateEquipeDto): Promise<Equipe> {
+    const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
     if (!projeto) {
-      throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
+      throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
     }
 
     const equipe = this.equipeRepo.create({ nome: dto.nome, projeto });
     return this.equipeRepo.save(equipe);
   }
 
-  findAll(): Promise<Equipe[]> {
-    return this.equipeRepo.find({ relations: ['projeto'] });
+  findAll(projetoId: number): Promise<Equipe[]> {
+    return this.equipeRepo.find({
+      where: { projeto: { id: projetoId } },
+      relations: ['projeto'],
+    });
   }
 
   async findOne(id: number): Promise<Equipe> {
     const equipe = await this.equipeRepo.findOne({
       where: { id },
-      relations: ['projeto'],
+      relations: ['projeto', 'usuarios'],
     });
     if (!equipe) throw new NotFoundException(`Equipe ${id} não encontrada`);
     return equipe;
   }
 
-  findByProjeto(projetoId: number): Promise<Equipe[]> {
-    return this.equipeRepo.find({
-      where: { projeto: { id: projetoId } },
-    });
-  }
-
   async update(id: number, dto: UpdateEquipeDto): Promise<Equipe> {
     const equipe = await this.findOne(id);
 
-    if (dto.nome !== undefined) {
-      equipe.nome = dto.nome;
-    }
-
-    if (dto.projetoId !== undefined) {
-      const projeto = await this.projetoRepo.findOne({ where: { id: dto.projetoId } });
-      if (!projeto) {
-        throw new NotFoundException(`Projeto ${dto.projetoId} não encontrado`);
-      }
-      equipe.projeto = projeto;
-    }
+    if (dto.nome !== undefined) equipe.nome = dto.nome;
 
     return this.equipeRepo.save(equipe);
   }
@@ -71,6 +58,7 @@ export class EquipeService {
       throw new NotFoundException(`Equipe ${id} não encontrada`);
     }
   }
+
 
   async addMembro(equipeId: number, usuarioId: number): Promise<Equipe> {
     const equipe = await this.equipeRepo.findOne({
@@ -87,7 +75,7 @@ export class EquipeService {
     }
 
     equipe.usuarios.push(usuario);
-    return this.equipeRepo.save(equipe)
+    return this.equipeRepo.save(equipe);
   }
 
   async removeMembro(equipeId: number, usuarioId: number): Promise<void> {
