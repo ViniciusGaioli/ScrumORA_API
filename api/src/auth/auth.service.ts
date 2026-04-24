@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
@@ -20,6 +20,12 @@ export class AuthService {
     const senhaConfere = await bcrypt.compare(dto.senha, user.senha);
     if (!senhaConfere) {
       throw new UnauthorizedException('Credenciais inválidas');
+    }
+
+    if (!user.emailVerificado) {
+      throw new ForbiddenException(
+        'Email não verificado. Verifique sua caixa de entrada e Spam.',
+      );
     }
 
     const payload = { sub: user.id, email: user.email };

@@ -21,6 +21,7 @@ import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { CommonModule } from './common/common.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -48,7 +49,8 @@ import { CommonModule } from './common/common.module';
     SprintModule,
     AtividadeResponsavelModule,
     AuthModule,
-    CommonModule
+    CommonModule,
+    MailModule
   ],
   controllers: [AppController],
   providers: [AppService, {provide: APP_GUARD, useClass: JwtAuthGuard}],

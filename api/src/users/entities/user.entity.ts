@@ -20,6 +20,9 @@ export class User {
     @Column({ type: 'varchar', length: 500, nullable: true, name: 'foto_perfil' })
     fotoPerfil?: string;
 
+    @Column({ type: 'boolean', default: false, name: 'email_verificado' })
+    emailVerificado!: boolean;
+
     @OneToMany(() => ProjetoUsuario, (pu) => pu.usuario)
     projetos!: ProjetoUsuario[];
 
