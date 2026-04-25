@@ -43,6 +43,8 @@ services:
             MAIL_FROM_NAME: ${MAIL_FROM_NAME}    
             MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS}  
             JWT_SECRET: ${JWT_SECRET} 
+            JWT_VERIFY_SECRET: ${JWT_VERIFY_SECRET}
+            APP_BASE_URL: ${APP_BASE_URL}
             NODE_ENV: ${NODE_ENV}
             CHOKIDAR_USEPOLLING: "true"
             CHOKIDAR_INTERVAL: "10"

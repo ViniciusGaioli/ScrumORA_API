@@ -5,20 +5,30 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { EmailVerificationService } from 'src/auth/email-verification.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly emailVerificationService: EmailVerificationService,
   ) {}
 
-  async create(CreateUserDto: CreateUserDto): Promise<User> {
-    const existente = await this.userRepo.findOne({ where: {email: CreateUserDto.email}})
+  async create(dto: CreateUserDto): Promise<User> {
+    const existente = await this.userRepo.findOne({ where: { email: dto.email } });
     if (existente) throw new ConflictException('E-mail já cadastrado');
-    const senhaHash = await bcrypt.hash(CreateUserDto.senha, 10);
-    const user = this.userRepo.create({...CreateUserDto, senha: senhaHash});
-    return this.userRepo.save(user);
+
+    const senhaHash = await bcrypt.hash(dto.senha, 10);
+    const user = this.userRepo.create({ ...dto, senha: senhaHash });
+    const userSalvo = await this.userRepo.save(user);
+
+    this.emailVerificationService.sendVerificationEmail(userSalvo)
+      .catch((err) => {
+        console.error('Falha ao enviar email de verificação:', err);
+      });
+
+    return userSalvo;
   }
 
   findAll(): Promise<User[]> {
