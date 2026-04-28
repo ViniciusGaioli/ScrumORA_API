@@ -45,6 +45,34 @@ export class UsersService {
     return this.userRepo.createQueryBuilder('user').addSelect('user.senha').where('user.email = :email', {email}).getOne();
   }
 
+  async findByGoogle(googleId: string, email: string): Promise<User | null> {
+    return (
+      await this.userRepo.findOne({ where: { googleId } }) ??
+      await this.userRepo.findOne({ where: { email } }) ??
+      null
+    );
+  }
+
+  async findOrCreateByGoogle(profile: { googleId: string; email: string; nome: string; fotoPerfil?: string }): Promise<User> {
+    let user = await this.userRepo.findOne({ where: { googleId: profile.googleId } });
+    if (user) return user;
+
+    user = await this.userRepo.findOne({ where: { email: profile.email } });
+    if (user) {
+      user.googleId = profile.googleId;
+      return this.userRepo.save(user);
+    }
+
+    const novo = this.userRepo.create({
+      googleId: profile.googleId,
+      email: profile.email,
+      nome: profile.nome,
+      fotoPerfil: profile.fotoPerfil,
+      emailVerificado: true,
+    });
+    return this.userRepo.save(novo);
+  }
+
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
     if (updateUserDto.senha) updateUserDto.senha = await bcrypt.hash(updateUserDto.senha, 10);

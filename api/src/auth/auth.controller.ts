@@ -1,16 +1,24 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 import { Public } from 'src/common/decorators/public.decorator';
 import { MailService } from 'src/mail/mail.service';
 import { EmailVerificationService } from './email-verification.service';
+import { Request, Response } from 'express';
+import { User } from '../users/entities/user.entity';
+import { ConfigService } from '@nestjs/config';
+import { GoogleLoginGuard } from './guards/google-login.guard';
+import { GoogleRegisterGuard } from './guards/google-register.guard';
+import { GoogleCallbackGuard } from './guards/google-callback.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly mailService: MailService, 
+    private readonly mailService: MailService,
     private readonly emailVerificationService: EmailVerificationService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Public()
@@ -18,6 +26,13 @@ export class AuthController {
   @HttpCode(200)
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Public()
+  @Post('register')
+  @HttpCode(201)
+  register(@Body() dto: CreateUserDto) {
+    return this.authService.register(dto);
   }
 
   @Public()
@@ -34,18 +49,37 @@ export class AuthController {
 
   @Public()
   @Get('verify-email')
-  async verifyEmail(@Query('token') token: string) {
-    
+  async verifyEmail(@Query('token') token: string, @Res() res: Response) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
     if (!token) {
-      throw new BadRequestException('Token não fornecido');
+      return res.redirect(`${frontendUrl}/auth/login?error=${encodeURIComponent('Token não fornecido')}`);
     }
+    try {
+      const user = await this.emailVerificationService.verifyToken(token);
+      const { accessToken } = await this.authService.loginWithGoogle(user);
+      res.redirect(`${frontendUrl}/auth/google/callback?token=${accessToken}`);
+    } catch (e) {
+      res.redirect(`${frontendUrl}/auth/login?error=${encodeURIComponent((e as Error).message)}`);
+    }
+  }
 
-    const user = await this.emailVerificationService.verifyToken(token);
+  @Public()
+  @Get('google/login')
+  @UseGuards(GoogleLoginGuard)
+  googleLoginPage() {}
 
-    return {
-      ok: true,
-      message: 'Email verificado com sucesso. Você já pode fazer login.',
-      user: { id: user.id, email: user.email, nome: user.nome },
-    };
+  @Public()
+  @Get('google/register')
+  @UseGuards(GoogleRegisterGuard)
+  googleRegisterPage() {}
+
+  @Public()
+  @Get('google/callback')
+  @UseGuards(GoogleCallbackGuard)
+  async googleCallback(@Req() req: Request & { user: User | null }, @Res() res: Response) {
+    if (!req.user || res.headersSent) return;
+    const { accessToken } = await this.authService.loginWithGoogle(req.user);
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+    res.redirect(`${frontendUrl}/auth/google/callback?token=${accessToken}`);
   }
 }

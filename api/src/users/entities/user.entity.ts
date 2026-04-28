@@ -14,8 +14,11 @@ export class User {
     @Column({ type: 'varchar', length: 255, unique: true })
     email!: string;
 
-    @Column({ type: 'varchar', length: 255, select: false })
-    senha!: string;
+    @Column({ type: 'varchar', length: 255, select: false, nullable: true })
+    senha?: string;
+
+    @Column({ type: 'varchar', length: 255, nullable: true, unique: true, name: 'google_id' })
+    googleId?: string;
 
     @Column({ type: 'varchar', length: 500, nullable: true, name: 'foto_perfil' })
     fotoPerfil?: string;

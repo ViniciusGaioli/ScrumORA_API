@@ -1,8 +1,10 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login';
+import { User } from '../users/entities/user.entity';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -14,12 +16,16 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmailWithPassword(dto.email);
     if (!user) {
-      throw new UnauthorizedException('Credenciais inválidas');
+      throw new NotFoundException('Nenhuma conta encontrada com este e-mail.');
+    }
+
+    if (!user.senha) {
+      throw new UnauthorizedException('Esta conta foi criada com Google. Use o botão "Entrar com Google".');
     }
 
     const senhaConfere = await bcrypt.compare(dto.senha, user.senha);
     if (!senhaConfere) {
-      throw new UnauthorizedException('Credenciais inválidas');
+      throw new UnauthorizedException('Senha incorreta.');
     }
 
     if (!user.emailVerificado) {
@@ -39,5 +45,16 @@ export class AuthService {
         email: user.email,
       },
     };
+  }
+
+  async register(dto: CreateUserDto) {
+    await this.usersService.create(dto);
+    return { message: 'Conta criada! Verifique seu email para ativar sua conta.' };
+  }
+
+  async loginWithGoogle(user: User) {
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = await this.jwtService.signAsync(payload);
+    return { accessToken, user: { id: user.id, nome: user.nome, email: user.email } };
   }
 }
