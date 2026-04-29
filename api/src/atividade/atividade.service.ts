@@ -49,8 +49,8 @@ export class AtividadeService {
 
   findAll(projetoId: number): Promise<Atividade[]> {
     return this.atividadeRepo.find({
-      where: { projeto: { id: projetoId } },
-      relations: ['projeto'],
+      where: { projeto: { id: projetoId }, arquivada: false },
+      relations: ['sprint', 'responsaveis', 'responsaveis.usuario'],
     });
   }
 

@@ -22,6 +22,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { CommonModule } from './common/common.module';
 import { MailModule } from './mail/mail.module';
+import { ConviteModule } from './convite/convite.module';
+import { Convite } from './convite/entities/convite.entity';
 
 @Module({
   imports: [
@@ -35,7 +37,7 @@ import { MailModule } from './mail/mail.module';
         username: config.get<string>('DB_USER'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
-        entities: [User, Projeto, ProjetoUsuario, Equipe, Atividade, Sprint, AtividadeResponsavel],
+        entities: [User, Projeto, ProjetoUsuario, Equipe, Atividade, Sprint, AtividadeResponsavel, Convite],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         synchronize: true,
         logging: ['error', 'warn'],
@@ -50,7 +52,8 @@ import { MailModule } from './mail/mail.module';
     AtividadeResponsavelModule,
     AuthModule,
     CommonModule,
-    MailModule
+    MailModule,
+    ConviteModule,
   ],
   controllers: [AppController],
   providers: [AppService, {provide: APP_GUARD, useClass: JwtAuthGuard}],

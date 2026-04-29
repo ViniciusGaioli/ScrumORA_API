@@ -28,6 +28,11 @@ export class ProjetoController {
     return this.projetoService.findAll();
   }
 
+  @Get('me')
+  findMy(@CurrentUser() user: UsuarioAtual) {
+    return this.projetoService.findByUser(user.id);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.projetoService.findOne(id);

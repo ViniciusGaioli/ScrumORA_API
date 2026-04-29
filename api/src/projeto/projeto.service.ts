@@ -5,6 +5,8 @@ import { Projeto } from './entities/projeto.entity';
 import { ProjetoUsuario } from '../projeto_usuario/entities/projeto_usuario.entity';
 import { User } from '../users/entities/user.entity';
 import { Papel } from '../projeto_usuario/enums/papel.enum';
+import { Etapa } from '../atividade/enums/etapa.enums';
+import { StatusSprint } from '../sprint/enums/status-sprint.enum';
 import { CreateProjetoDto } from './dto/create-projeto.dto';
 import { UpdateProjetoDto } from './dto/update-projeto.dto';
 
@@ -40,6 +42,49 @@ export class ProjetoService {
 
   findAll(): Promise<Projeto[]> {
     return this.projetoRepo.find();
+  }
+
+  async findByUser(userId: number) {
+    const vinculos = await this.dataSource
+      .getRepository(ProjetoUsuario)
+      .find({
+        where: { usuario: { id: userId } },
+        relations: [
+          'projeto',
+          'projeto.membros',
+          'projeto.membros.usuario',
+          'projeto.sprints',
+          'projeto.atividades',
+        ],
+      });
+
+    return vinculos.map(({ projeto, papel }) => {
+      const total = projeto.atividades?.length ?? 0;
+      const finalizadas = projeto.atividades?.filter(a => a.etapa === Etapa.FINALIZADA).length ?? 0;
+      const abertas = projeto.atividades?.filter(a => !a.arquivada && a.etapa !== Etapa.FINALIZADA).length ?? 0;
+      const progress = total > 0 ? Math.round((finalizadas / total) * 100) : 0;
+
+      const activeSprint = projeto.sprints?.find(s => s.status === StatusSprint.EM_ANDAMENTO);
+
+      const membros = (projeto.membros ?? []).map(m => {
+        const words = m.usuario.nome.trim().split(/\s+/);
+        const initials = (words[0][0] + (words[1]?.[0] ?? '')).toUpperCase();
+        return { id: m.usuario.id, name: m.usuario.nome, initials };
+      });
+
+      return {
+        id: projeto.id,
+        nome: projeto.nome,
+        descricao: projeto.descricao,
+        papel,
+        progress,
+        atividadesAbertas: abertas,
+        activeSprint: activeSprint
+          ? { id: activeSprint.id, nome: activeSprint.nome, ativa: true }
+          : undefined,
+        membros,
+      };
+    });
   }
 
   async findOne(id: number): Promise<Projeto> {
