@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { ProjetoUsuario } from './entities/projeto_usuario.entity';
 import { User } from '../users/entities/user.entity';
 import { Projeto } from '../projeto/entities/projeto.entity';
+import { AtividadeResponsavel } from '../atividade-responsavel/entities/atividade-responsavel.entity';
 import { CreateProjetoUsuarioDto } from './dto/create-projeto_usuario.dto';
 import { UpdateProjetoUsuarioDto } from './dto/update-projeto_usuario.dto';
 
@@ -16,6 +17,8 @@ export class ProjetoUsuarioService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(Projeto)
     private readonly projetoRepo: Repository<Projeto>,
+    @InjectRepository(AtividadeResponsavel)
+    private readonly arRepo: Repository<AtividadeResponsavel>,
   ) {}
 
   async create(projetoId: number, dto: CreateProjetoUsuarioDto): Promise<ProjetoUsuario> {
@@ -86,5 +89,12 @@ export class ProjetoUsuarioService {
         `Usuário ${usuarioId} não é membro do projeto ${projetoId}`,
       );
     }
+
+    await this.arRepo.query(
+      `DELETE FROM atividade_responsavel
+       WHERE usuario_id = ?
+       AND atividade_id IN (SELECT id FROM atividade WHERE projeto_id = ?)`,
+      [usuarioId, projetoId],
+    );
   }
 }

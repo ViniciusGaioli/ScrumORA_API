@@ -31,7 +31,7 @@ export class EquipeService {
   findAll(projetoId: number): Promise<Equipe[]> {
     return this.equipeRepo.find({
       where: { projeto: { id: projetoId } },
-      relations: ['projeto'],
+      relations: ['usuarios'],
     });
   }
 
