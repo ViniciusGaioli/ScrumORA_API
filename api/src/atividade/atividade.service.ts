@@ -50,7 +50,7 @@ export class AtividadeService {
   findAll(projetoId: number): Promise<Atividade[]> {
     return this.atividadeRepo.find({
       where: { projeto: { id: projetoId }, arquivada: false },
-      relations: ['sprint', 'responsaveis', 'responsaveis.usuario'],
+      relations: ['sprint', 'responsaveis', 'responsaveis.usuario', 'responsaveis.equipe'],
     });
   }
 
@@ -64,11 +64,15 @@ export class AtividadeService {
   }
 
   async update(id: number, dto: UpdateAtividadeDto): Promise<Atividade> {
-    const atividade = await this.findOne(id);
+    const atividade = await this.atividadeRepo.findOne({
+      where: { id },
+      relations: ['projeto', 'sprint'],
+    });
+    if (!atividade) throw new NotFoundException(`Atividade ${id} não encontrada`);
 
     if (dto.sprintId !== undefined) {
       if (dto.sprintId === null) {
-        atividade.sprint = undefined;
+        (atividade as { sprint: Sprint | null }).sprint = null;
       } else {
         const sprint = await this.sprintRepo.findOne({ where: { id: dto.sprintId } });
         if (!sprint) throw new NotFoundException(`Sprint ${dto.sprintId} não encontrada`);
@@ -84,8 +88,8 @@ export class AtividadeService {
     if (dto.dataFim !== undefined) atividade.dataFim = new Date(dto.dataFim);
 
     this.validarDatas(
-      atividade.dataInicio.toISOString(),
-      atividade.dataFim.toISOString(),
+      new Date(atividade.dataInicio).toISOString(),
+      new Date(atividade.dataFim).toISOString(),
     );
 
     return this.atividadeRepo.save(atividade);
