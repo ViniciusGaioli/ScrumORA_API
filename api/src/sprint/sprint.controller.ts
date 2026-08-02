@@ -29,24 +29,32 @@ export class SprintController {
     return this.sprintService.findAll(projetoId);
   }
 
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER, Papel.DEVELOPER)
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.sprintService.findOne(id);
+  findOne(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.sprintService.findOne(projetoId, id);
   }
 
   @Patch(':id')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   update(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateSprintDto,
   ) {
-    return this.sprintService.update(id, dto);
+    return this.sprintService.update(projetoId, id, dto);
   }
 
   @Delete(':id')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   @HttpCode(204)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.sprintService.remove(id);
+  remove(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.sprintService.remove(projetoId, id);
   }
 }

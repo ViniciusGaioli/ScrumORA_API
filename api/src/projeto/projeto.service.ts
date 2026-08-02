@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ErroDominio, ErrosProjeto } from '../common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Projeto } from './entities/projeto.entity';
@@ -23,7 +24,7 @@ export class ProjetoService {
   async create(userId: number, dto: CreateProjetoDto): Promise<Projeto> {
     const criador = await this.userRepo.findOne({ where: { id: userId } });
     if (!criador) {
-      throw new NotFoundException(`Usuário ${userId} não encontrado`);
+      throw new ErroDominio(ErrosProjeto.NAO_ENCONTRADO);
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -89,7 +90,7 @@ export class ProjetoService {
 
   async findOne(id: number): Promise<Projeto> {
     const projeto = await this.projetoRepo.findOne({ where: { id } });
-    if (!projeto) throw new NotFoundException(`Projeto ${id} não encontrado`);
+    if (!projeto) throw new ErroDominio(ErrosProjeto.NAO_ENCONTRADO);
     return projeto;
   }
 
@@ -102,7 +103,7 @@ export class ProjetoService {
   async remove(id: number): Promise<void> {
     const result = await this.projetoRepo.delete(id);
     if (result.affected === 0) {
-      throw new NotFoundException(`Projeto ${id} não encontrado`);
+      throw new ErroDominio(ErrosProjeto.NAO_ENCONTRADO);
     }
   }
 }

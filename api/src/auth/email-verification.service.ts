@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ErroDominio, ErrosAuth } from '../common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -48,16 +49,16 @@ export class EmailVerificationService {
                 secret: this.config.get<string>('JWT_VERIFY_SECRET'),
         });
         } catch {
-            throw new BadRequestException('Token inválido ou expirado');
+            throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
         }
 
         if (payload.purpose !== 'email-verify') {
-            throw new BadRequestException('Token inválido');
+            throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
         }
 
         const user = await this.userRepo.findOne({ where: { id: payload.sub } });
         if (!user) {
-            throw new NotFoundException('Usuário não encontrado');
+            throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
         }
 
         if (user.emailVerificado) {

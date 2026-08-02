@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ErroDominio, ErrosSprint } from '../common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Sprint } from './entities/sprint.entity';
@@ -18,7 +19,7 @@ export class SprintService {
   async create(projetoId: number, dto: CreateSprintDto): Promise<Sprint> {
     const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
     if (!projeto) {
-      throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
+      throw new ErroDominio(ErrosSprint.NAO_ENCONTRADA);
     }
 
     this.validarDatas(dto.dataInicio, dto.dataFim);
@@ -41,17 +42,17 @@ export class SprintService {
     });
   }
 
-  async findOne(id: number): Promise<Sprint> {
+  async findOne(projetoId: number, id: number): Promise<Sprint> {
     const sprint = await this.sprintRepo.findOne({
-      where: { id },
+      where: { id, projeto: { id: projetoId } },
       relations: ['projeto', 'atividades'],
     });
-    if (!sprint) throw new NotFoundException(`Sprint ${id} não encontrada`);
+    if (!sprint) throw new ErroDominio(ErrosSprint.NAO_ENCONTRADA);
     return sprint;
   }
 
-  async update(id: number, dto: UpdateSprintDto): Promise<Sprint> {
-    const sprint = await this.findOne(id);
+  async update(projetoId: number, id: number, dto: UpdateSprintDto): Promise<Sprint> {
+    const sprint = await this.findOne(projetoId, id);
 
     if (dto.nome !== undefined) sprint.nome = dto.nome;
     if (dto.status !== undefined) sprint.status = dto.status;
@@ -63,16 +64,16 @@ export class SprintService {
     return this.sprintRepo.save(sprint);
   }
 
-  async remove(id: number): Promise<void> {
-    const result = await this.sprintRepo.delete(id);
+  async remove(projetoId: number, id: number): Promise<void> {
+    const result = await this.sprintRepo.delete({ id, projeto: { id: projetoId } });
     if (result.affected === 0) {
-      throw new NotFoundException(`Sprint ${id} não encontrada`);
+      throw new ErroDominio(ErrosSprint.NAO_ENCONTRADA);
     }
   }
 
   private validarDatas(inicio: string | Date, fim: string | Date): void {
     if (new Date(fim) < new Date(inicio)) {
-      throw new BadRequestException('A data de fim não pode ser anterior à data de início');
+      throw new ErroDominio(ErrosSprint.DATAS_INVALIDAS);
     }
   }
 }

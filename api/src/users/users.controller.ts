@@ -1,8 +1,10 @@
-import {Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, HttpCode,} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe, HttpCode } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Public } from 'src/common/decorators/public.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { UsuarioAtual } from '../common/decorators/current-user.decorator';
+import { ErroDominio, ErrosUsuario, Mensagem, Public } from '../common';
 
 @Controller('users')
 export class UsersController {
@@ -10,31 +12,33 @@ export class UsersController {
 
   @Public()
   @Post()
+  @Mensagem('Conta criada.')
   create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
   }
 
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @Get('me')
+  @Mensagem('Conta carregada.')
+  findMe(@CurrentUser() user: UsuarioAtual) {
+    return this.usersService.findOne(user.id);
+  }
+
+  @Patch('me')
+  @Mensagem('Conta atualizada.')
+  updateMe(@CurrentUser() user: UsuarioAtual, @Body() dto: UpdateUserDto) {
+    return this.usersService.update(user.id, dto);
+  }
+
+  @Delete('me')
+  @HttpCode(204)
+  removeMe(@CurrentUser() user: UsuarioAtual) {
+    return this.usersService.remove(user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Mensagem('Usuário carregado.')
+  findOne(@CurrentUser() user: UsuarioAtual, @Param('id', ParseIntPipe) id: number) {
+    if (user.id !== id) throw new ErroDominio(ErrosUsuario.SEM_PERMISSAO);
     return this.usersService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateUserDto,
-  ) {
-    return this.usersService.update(id, dto);
-  }
-
-  @Delete(':id')
-  @HttpCode(204)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.remove(id);
   }
 }

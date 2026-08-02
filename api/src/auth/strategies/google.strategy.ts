@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ErroDominio, ErrosAuth } from '../../common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, Profile, StrategyOptionsWithRequest } from 'passport-google-oauth20';
 import { ConfigService } from '@nestjs/config';
@@ -27,7 +28,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const fotoPerfil = profile.photos?.[0]?.value;
 
     if (!email) {
-      throw new UnauthorizedException('Não foi possível obter o email da conta Google.');
+      throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
     }
 
     if (action === 'register') {
@@ -41,7 +42,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
 
     const user = await this.usersService.findByGoogle(profile.id, email);
     if (!user) {
-      throw new UnauthorizedException('Nenhuma conta encontrada com este Google. Cadastre-se primeiro.');
+      throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
     }
     return user;
   }

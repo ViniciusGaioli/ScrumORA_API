@@ -31,47 +31,60 @@ export class EquipeController {
 
   @Get(':id')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER, Papel.DEVELOPER)
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.equipeService.findOne(id);
+  findOne(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.equipeService.findOne(projetoId, id);
   }
 
   @Patch(':id')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   update(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateEquipeDto,
   ) {
-    return this.equipeService.update(id, dto);
+    return this.equipeService.update(projetoId, id, dto);
   }
 
   @Delete(':id')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   @HttpCode(204)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.equipeService.remove(id);
+  remove(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.equipeService.remove(projetoId, id);
   }
 
+  @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER, Papel.DEVELOPER)
   @Get(':id/membros')
-  findMembros(@Param('id', ParseIntPipe) id: number) {
-    return this.equipeService.findMembros(id);
+  findMembros(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.equipeService.findMembros(projetoId, id);
   }
 
   @Post(':id/membros/:usuarioId')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   addMembro(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
     @Param('id', ParseIntPipe) id: number,
     @Param('usuarioId', ParseIntPipe) usuarioId: number,
   ) {
-    return this.equipeService.addMembro(id, usuarioId);
+    return this.equipeService.addMembro(projetoId, id, usuarioId);
   }
 
   @Delete(':id/membros/:usuarioId')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   @HttpCode(204)
   removeMembro(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
     @Param('id', ParseIntPipe) id: number,
     @Param('usuarioId', ParseIntPipe) usuarioId: number,
   ) {
-    return this.equipeService.removeMembro(id, usuarioId);
+    return this.equipeService.removeMembro(projetoId, id, usuarioId);
   }
 }

@@ -23,11 +23,6 @@ export class ProjetoController {
     return this.projetoService.create(user.id, dto);
   }
 
-  @Get()
-  findAll() {
-    return this.projetoService.findAll();
-  }
-
   @Get('me')
   findMy(@CurrentUser() user: UsuarioAtual) {
     return this.projetoService.findByUser(user.id);

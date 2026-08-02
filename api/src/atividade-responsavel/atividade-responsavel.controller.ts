@@ -1,38 +1,46 @@
-import {
-  Controller, Get, Post, Body, Param, Delete, ParseIntPipe, HttpCode, Query,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, HttpCode, Query } from '@nestjs/common';
 import { AtividadeResponsavelService } from './atividade-responsavel.service';
+import { AtividadeResponsavelAccess } from './atividade-responsavel.access';
 import { CreateAtividadeResponsavelDto } from './dto/create-atividade-responsavel.dto';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { UsuarioAtual } from '../common/decorators/current-user.decorator';
+import { Mensagem } from '../common';
 
 @Controller('atividade-responsavel')
 export class AtividadeResponsavelController {
-  constructor(private readonly service: AtividadeResponsavelService) {}
+  constructor(
+    private readonly service: AtividadeResponsavelService,
+    private readonly access: AtividadeResponsavelAccess,
+  ) {}
 
   @Post()
-  create(@Body() dto: CreateAtividadeResponsavelDto) {
+  @Mensagem('Responsáveis vinculados.')
+  async create(@CurrentUser() user: UsuarioAtual, @Body() dto: CreateAtividadeResponsavelDto) {
+    await this.access.porAtividade(user.id, dto.atividadeId);
     return this.service.create(dto);
   }
 
   @Get()
-  findAll(
-    @Query('atividadeId') atividadeId?: string,
-    @Query('usuarioId') usuarioId?: string,
-    @Query('equipeId') equipeId?: string,
+  @Mensagem('Responsáveis carregados.')
+  async findAll(
+    @CurrentUser() user: UsuarioAtual,
+    @Query('atividadeId', ParseIntPipe) atividadeId: number,
   ) {
-    if (atividadeId) return this.service.findByAtividade(Number(atividadeId));
-    if (usuarioId) return this.service.findByUsuario(Number(usuarioId));
-    if (equipeId) return this.service.findByEquipe(Number(equipeId));
-    return this.service.findAll();
+    await this.access.porAtividade(user.id, atividadeId);
+    return this.service.findByAtividade(atividadeId);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Mensagem('Responsável carregado.')
+  async findOne(@CurrentUser() user: UsuarioAtual, @Param('id', ParseIntPipe) id: number) {
+    await this.access.porVinculo(user.id, id);
     return this.service.findOne(id);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@CurrentUser() user: UsuarioAtual, @Param('id', ParseIntPipe) id: number) {
+    await this.access.porVinculo(user.id, id);
     return this.service.remove(id);
   }
 }

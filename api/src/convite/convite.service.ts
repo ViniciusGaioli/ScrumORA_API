@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ErroDominio, ErrosConvite } from '../common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomUUID } from 'crypto';
@@ -27,7 +28,7 @@ export class ConviteService {
 
     async criarConvite(projetoId: number, email?: string): Promise<{ token: string; link: string }> {
         const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
-        if (!projeto) throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
+        if (!projeto) throw new ErroDominio(ErrosConvite.INVALIDO);
 
         const token = randomUUID();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -63,9 +64,9 @@ export class ConviteService {
             relations: ['projeto'],
         });
 
-        if (!convite) throw new NotFoundException('Convite não encontrado');
-        if (convite.usadoEm) throw new BadRequestException('Este convite já foi utilizado');
-        if (new Date() > convite.expiresAt) throw new BadRequestException('Este convite expirou');
+        if (!convite) throw new ErroDominio(ErrosConvite.INVALIDO);
+        if (convite.usadoEm) throw new ErroDominio(ErrosConvite.INVALIDO);
+        if (new Date() > convite.expiresAt) throw new ErroDominio(ErrosConvite.INVALIDO);
 
         const jaExiste = await this.puRepo.findOne({
             where: { usuario: { id: userId }, projeto: { id: convite.projeto.id } },
@@ -73,7 +74,7 @@ export class ConviteService {
 
         if (!jaExiste) {
             const usuario = await this.userRepo.findOne({ where: { id: userId } });
-            if (!usuario) throw new NotFoundException('Usuário não encontrado');
+            if (!usuario) throw new ErroDominio(ErrosConvite.INVALIDO);
 
             const pu = this.puRepo.create({ usuario, projeto: convite.projeto, papel: convite.papel });
             await this.puRepo.save(pu);

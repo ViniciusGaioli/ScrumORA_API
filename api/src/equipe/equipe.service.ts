@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { ErroDominio, ErrosEquipe } from '../common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Equipe } from './entities/equipe.entity';
@@ -21,7 +22,7 @@ export class EquipeService {
   async create(projetoId: number, dto: CreateEquipeDto): Promise<Equipe> {
     const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
     if (!projeto) {
-      throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
+      throw new ErroDominio(ErrosEquipe.NAO_ENCONTRADA);
     }
 
     const equipe = this.equipeRepo.create({ nome: dto.nome, projeto });
@@ -35,72 +36,72 @@ export class EquipeService {
     });
   }
 
-  async findOne(id: number): Promise<Equipe> {
+  async findOne(projetoId: number, id: number): Promise<Equipe> {
     const equipe = await this.equipeRepo.findOne({
-      where: { id },
+      where: { id, projeto: { id: projetoId } },
       relations: ['projeto', 'usuarios'],
     });
-    if (!equipe) throw new NotFoundException(`Equipe ${id} não encontrada`);
+    if (!equipe) throw new ErroDominio(ErrosEquipe.NAO_ENCONTRADA);
     return equipe;
   }
 
-  async update(id: number, dto: UpdateEquipeDto): Promise<Equipe> {
-    const equipe = await this.findOne(id);
+  async update(projetoId: number, id: number, dto: UpdateEquipeDto): Promise<Equipe> {
+    const equipe = await this.findOne(projetoId, id);
 
     if (dto.nome !== undefined) equipe.nome = dto.nome;
 
     return this.equipeRepo.save(equipe);
   }
 
-  async remove(id: number): Promise<void> {
-    const result = await this.equipeRepo.delete(id);
+  async remove(projetoId: number, id: number): Promise<void> {
+    const result = await this.equipeRepo.delete({ id, projeto: { id: projetoId } });
     if (result.affected === 0) {
-      throw new NotFoundException(`Equipe ${id} não encontrada`);
+      throw new ErroDominio(ErrosEquipe.NAO_ENCONTRADA);
     }
   }
 
 
-  async addMembro(equipeId: number, usuarioId: number): Promise<Equipe> {
+  async addMembro(projetoId: number, equipeId: number, usuarioId: number): Promise<Equipe> {
     const equipe = await this.equipeRepo.findOne({
-      where: { id: equipeId },
+      where: { id: equipeId, projeto: { id: projetoId } },
       relations: ['usuarios'],
     });
-    if (!equipe) throw new NotFoundException(`Equipe ${equipeId} não encontrada`);
+    if (!equipe) throw new ErroDominio(ErrosEquipe.NAO_ENCONTRADA);
 
     const usuario = await this.userRepo.findOne({ where: { id: usuarioId } });
-    if (!usuario) throw new NotFoundException(`Usuário ${usuarioId} não encontrado`);
+    if (!usuario) throw new ErroDominio(ErrosEquipe.NAO_ENCONTRADA);
 
     if (equipe.usuarios.some((u) => u.id === usuarioId)) {
-      throw new ConflictException('Usuário já é membro desta equipe');
+      throw new ErroDominio(ErrosEquipe.NOME_EM_USO);
     }
 
     equipe.usuarios.push(usuario);
     return this.equipeRepo.save(equipe);
   }
 
-  async removeMembro(equipeId: number, usuarioId: number): Promise<void> {
+  async removeMembro(projetoId: number, equipeId: number, usuarioId: number): Promise<void> {
     const equipe = await this.equipeRepo.findOne({
-      where: { id: equipeId },
+      where: { id: equipeId, projeto: { id: projetoId } },
       relations: ['usuarios'],
     });
-    if (!equipe) throw new NotFoundException(`Equipe ${equipeId} não encontrada`);
+    if (!equipe) throw new ErroDominio(ErrosEquipe.NAO_ENCONTRADA);
 
     const tinha = equipe.usuarios.length;
     equipe.usuarios = equipe.usuarios.filter((u) => u.id !== usuarioId);
 
     if (equipe.usuarios.length === tinha) {
-      throw new NotFoundException(`Usuário ${usuarioId} não é membro desta equipe`);
+      throw new ErroDominio(ErrosEquipe.NAO_ENCONTRADA);
     }
 
     await this.equipeRepo.save(equipe);
   }
 
-  async findMembros(equipeId: number): Promise<User[]> {
+  async findMembros(projetoId: number, equipeId: number): Promise<User[]> {
     const equipe = await this.equipeRepo.findOne({
-      where: { id: equipeId },
+      where: { id: equipeId, projeto: { id: projetoId } },
       relations: ['usuarios'],
     });
-    if (!equipe) throw new NotFoundException(`Equipe ${equipeId} não encontrada`);
+    if (!equipe) throw new ErroDominio(ErrosEquipe.NAO_ENCONTRADA);
     return equipe.usuarios;
   }
 }

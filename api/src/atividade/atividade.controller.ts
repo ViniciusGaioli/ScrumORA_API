@@ -30,35 +30,48 @@ export class AtividadeController {
 
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER, Papel.DEVELOPER)
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.atividadeService.findOne(id);
+  findOne(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.atividadeService.findOne(projetoId, id);
   }
 
   @Patch(':id')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   update(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAtividadeDto,
   ) {
-    return this.atividadeService.update(id, dto);
+    return this.atividadeService.update(projetoId, id, dto);
   }
 
   @Patch(':id/arquivar')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
-  arquivar(@Param('id', ParseIntPipe) id: number) {
-    return this.atividadeService.arquivar(id);
+  arquivar(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.atividadeService.arquivar(projetoId, id);
   }
 
   @Patch(':id/desarquivar')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
-  desarquivar(@Param('id', ParseIntPipe) id: number) {
-    return this.atividadeService.desarquivar(id);
+  desarquivar(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.atividadeService.desarquivar(projetoId, id);
   }
 
   @Delete(':id')
   @PapeisRequeridos(Papel.PRODUCT_OWNER, Papel.SCRUM_MASTER)
   @HttpCode(204)
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.atividadeService.remove(id);
+  remove(
+    @Param('projetoId', ParseIntPipe) projetoId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.atividadeService.remove(projetoId, id);
   }
 }

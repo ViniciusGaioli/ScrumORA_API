@@ -1,4 +1,5 @@
-import { ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ErroDominio, ErrosAuth } from '../common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
@@ -16,22 +17,20 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmailWithPassword(dto.email);
     if (!user) {
-      throw new NotFoundException('Nenhuma conta encontrada com este e-mail.');
+      throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
     }
 
     if (!user.senha) {
-      throw new UnauthorizedException('Esta conta foi criada com Google. Use o botão "Entrar com Google".');
+      throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
     }
 
     const senhaConfere = await bcrypt.compare(dto.senha, user.senha);
     if (!senhaConfere) {
-      throw new UnauthorizedException('Senha incorreta.');
+      throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
     }
 
     if (!user.emailVerificado) {
-      throw new ForbiddenException(
-        'Email não verificado. Verifique sua caixa de entrada e Spam.',
-      );
+      throw new ErroDominio(ErrosAuth.EMAIL_NAO_VERIFICADO);
     }
 
     const payload = { sub: user.id, email: user.email, nome: user.nome };

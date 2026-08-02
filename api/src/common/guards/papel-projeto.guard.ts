@@ -1,4 +1,5 @@
-import {CanActivate, ExecutionContext, ForbiddenException, Injectable ,NotFoundException,} from '@nestjs/common';
+import { ErroDominio, ErrosComuns } from '../../common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -21,18 +22,18 @@ export class PapelProjetoGuard implements CanActivate {
         );
 
         if (!papeisExigidos || papeisExigidos.length === 0) {
-            return true;
+            throw new ErroDominio(ErrosComuns.SEM_PERMISSAO);
         }
 
         const request = context.switchToHttp().getRequest();
         const usuarioId: number | undefined = request.user?.id;
         if (!usuarioId) {
-            throw new ForbiddenException('Usuário não autenticado');
+            throw new ErroDominio(ErrosComuns.SEM_PERMISSAO);
         }
 
         const projetoId = this.resolverProjetoId(request);
         if (!projetoId) {
-            throw new ForbiddenException('Projeto-alvo não identificado');
+            throw new ErroDominio(ErrosComuns.SEM_PERMISSAO);
         }
 
         const vinculo = await this.puRepo.findOne({
@@ -43,13 +44,11 @@ export class PapelProjetoGuard implements CanActivate {
         });
 
         if (!vinculo) {
-            throw new NotFoundException('Projeto não encontrado');
+            throw new ErroDominio(ErrosComuns.SEM_PERMISSAO);
         }
 
         if (!papeisExigidos.includes(vinculo.papel)) {
-            throw new ForbiddenException(
-                'Você não tem permissão para realizar esta ação neste projeto',
-            );
+            throw new ErroDominio(ErrosComuns.SEM_PERMISSAO);
         }
 
         return true;

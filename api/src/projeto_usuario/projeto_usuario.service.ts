@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { ErroDominio, ErrosMembro } from '../common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProjetoUsuario } from './entities/projeto_usuario.entity';
@@ -24,12 +25,12 @@ export class ProjetoUsuarioService {
   async create(projetoId: number, dto: CreateProjetoUsuarioDto): Promise<ProjetoUsuario> {
     const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
     if (!projeto) {
-      throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
+      throw new ErroDominio(ErrosMembro.NAO_ENCONTRADO);
     }
 
     const usuario = await this.userRepo.findOne({ where: { id: dto.usuarioId } });
     if (!usuario) {
-      throw new NotFoundException(`Usuário ${dto.usuarioId} não encontrado`);
+      throw new ErroDominio(ErrosMembro.NAO_ENCONTRADO);
     }
 
     const jaExiste = await this.puRepo.findOne({
@@ -39,7 +40,7 @@ export class ProjetoUsuarioService {
       },
     });
     if (jaExiste) {
-      throw new ConflictException('Este usuário já é membro deste projeto');
+      throw new ErroDominio(ErrosMembro.JA_PARTICIPA);
     }
 
     const pu = this.puRepo.create({ usuario, projeto, papel: dto.papel });
@@ -62,9 +63,7 @@ export class ProjetoUsuarioService {
       relations: ['usuario', 'projeto'],
     });
     if (!pu) {
-      throw new NotFoundException(
-        `Usuário ${usuarioId} não é membro do projeto ${projetoId}`,
-      );
+      throw new ErroDominio(ErrosMembro.NAO_ENCONTRADO);
     }
     return pu;
   }
@@ -85,9 +84,7 @@ export class ProjetoUsuarioService {
       usuario: { id: usuarioId },
     });
     if (result.affected === 0) {
-      throw new NotFoundException(
-        `Usuário ${usuarioId} não é membro do projeto ${projetoId}`,
-      );
+      throw new ErroDominio(ErrosMembro.NAO_ENCONTRADO);
     }
 
     await this.arRepo.query(

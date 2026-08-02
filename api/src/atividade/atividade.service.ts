@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { ErroDominio, ErrosAtividade } from '../common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Atividade } from './entities/atividade.entity';
@@ -21,13 +22,13 @@ export class AtividadeService {
   async create(projetoId: number,dto: CreateAtividadeDto): Promise<Atividade> {
     const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
     if (!projeto) {
-      throw new NotFoundException(`Projeto ${projetoId} não encontrado`);
+      throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
     }
 
     let sprint: Sprint | undefined;
     if (dto.sprintId !== undefined) {
       const s = await this.sprintRepo.findOne({ where: { id: dto.sprintId } });
-      if (!s) throw new NotFoundException(`Sprint ${dto.sprintId} não encontrada`);
+      if (!s) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
       sprint = s;
     }
 
@@ -54,28 +55,30 @@ export class AtividadeService {
     });
   }
 
-  async findOne(id: number): Promise<Atividade> {
+  async findOne(projetoId: number, id: number): Promise<Atividade> {
     const atividade = await this.atividadeRepo.findOne({
-      where: { id },
+      where: { id, projeto: { id: projetoId } },
       relations: ['projeto'],
     });
-    if (!atividade) throw new NotFoundException(`Atividade ${id} não encontrada`);
+    if (!atividade) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
     return atividade;
   }
 
-  async update(id: number, dto: UpdateAtividadeDto): Promise<Atividade> {
+  async update(projetoId: number, id: number, dto: UpdateAtividadeDto): Promise<Atividade> {
     const atividade = await this.atividadeRepo.findOne({
-      where: { id },
+      where: { id, projeto: { id: projetoId } },
       relations: ['projeto', 'sprint'],
     });
-    if (!atividade) throw new NotFoundException(`Atividade ${id} não encontrada`);
+    if (!atividade) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
 
     if (dto.sprintId !== undefined) {
       if (dto.sprintId === null) {
         (atividade as { sprint: Sprint | null }).sprint = null;
       } else {
-        const sprint = await this.sprintRepo.findOne({ where: { id: dto.sprintId } });
-        if (!sprint) throw new NotFoundException(`Sprint ${dto.sprintId} não encontrada`);
+        const sprint = await this.sprintRepo.findOne({
+          where: { id: dto.sprintId, projeto: { id: projetoId } },
+        });
+        if (!sprint) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
         atividade.sprint = sprint;
       }
     }
@@ -95,28 +98,28 @@ export class AtividadeService {
     return this.atividadeRepo.save(atividade);
   }
 
-  async arquivar(id: number): Promise<Atividade> {
-    const atividade = await this.findOne(id);
+  async arquivar(projetoId: number, id: number): Promise<Atividade> {
+    const atividade = await this.findOne(projetoId, id);
     atividade.arquivada = true;
     return this.atividadeRepo.save(atividade);
   }
 
-  async desarquivar(id: number): Promise<Atividade> {
-    const atividade = await this.findOne(id);
+  async desarquivar(projetoId: number, id: number): Promise<Atividade> {
+    const atividade = await this.findOne(projetoId, id);
     atividade.arquivada = false;
     return this.atividadeRepo.save(atividade);
   }
 
-  async remove(id: number): Promise<void> {
-    const result = await this.atividadeRepo.delete(id);
+  async remove(projetoId: number, id: number): Promise<void> {
+    const result = await this.atividadeRepo.delete({ id, projeto: { id: projetoId } });
     if (result.affected === 0) {
-      throw new NotFoundException(`Atividade ${id} não encontrada`);
+      throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
     }
   }
 
   private validarDatas(inicio: string, fim: string): void {
     if (new Date(fim) < new Date(inicio)) {
-      throw new BadRequestException('A data de fim não pode ser anterior à data de início');
+      throw new ErroDominio(ErrosAtividade.DATAS_INVALIDAS);
     }
   }
 }

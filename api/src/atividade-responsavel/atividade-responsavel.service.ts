@@ -1,6 +1,5 @@
-import {
-  Injectable, NotFoundException, BadRequestException, ConflictException,
-} from '@nestjs/common';
+import { ErroDominio, ErrosResponsavel } from '../common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { AtividadeResponsavel } from './entities/atividade-responsavel.entity';
@@ -28,14 +27,12 @@ export class AtividadeResponsavelService {
     const equipeIds = dto.equipeIds ?? [];
 
     if (usuarioIds.length === 0 && equipeIds.length === 0) {
-      throw new BadRequestException(
-        'Informe pelo menos um responsável (usuarioIds ou equipeIds)',
-      );
+      throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
     }
 
     const atividade = await this.atividadeRepo.findOne({ where: { id: dto.atividadeId } });
     if (!atividade) {
-      throw new NotFoundException(`Atividade ${dto.atividadeId} não encontrada`);
+      throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
     }
 
     let usuarios: User[] = [];
@@ -44,7 +41,7 @@ export class AtividadeResponsavelService {
       if (usuarios.length !== usuarioIds.length) {
         const encontrados = usuarios.map((u) => u.id);
         const faltando = usuarioIds.filter((id) => !encontrados.includes(id));
-        throw new NotFoundException(`Usuários não encontrados: ${faltando.join(', ')}`);
+        throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
       }
     }
 
@@ -54,7 +51,7 @@ export class AtividadeResponsavelService {
       if (equipes.length !== equipeIds.length) {
         const encontrados = equipes.map((e) => e.id);
         const faltando = equipeIds.filter((id) => !encontrados.includes(id));
-        throw new NotFoundException(`Equipes não encontradas: ${faltando.join(', ')}`);
+        throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
       }
     }
     const jaExistentes = await this.arRepo.find({
@@ -76,7 +73,7 @@ export class AtividadeResponsavelService {
       if (equipesDuplicadas.length > 0) {
         msgs.push(`equipes já responsáveis: ${equipesDuplicadas.join(', ')}`);
       }
-      throw new ConflictException(msgs.join('; '));
+      throw new ErroDominio(ErrosResponsavel.VINCULO_DUPLICADO);
     }
 
     const novos: AtividadeResponsavel[] = [
@@ -98,7 +95,7 @@ export class AtividadeResponsavelService {
       where: { id },
       relations: ['atividade', 'usuario', 'equipe'],
     });
-    if (!ar) throw new NotFoundException(`Responsabilidade ${id} não encontrada`);
+    if (!ar) throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
     return ar;
   }
 
@@ -126,7 +123,7 @@ export class AtividadeResponsavelService {
   async remove(id: number): Promise<void> {
     const result = await this.arRepo.delete(id);
     if (result.affected === 0) {
-      throw new NotFoundException(`Responsabilidade ${id} não encontrada`);
+      throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
     }
   }
 }

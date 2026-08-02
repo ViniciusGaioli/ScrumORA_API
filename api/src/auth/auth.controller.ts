@@ -36,18 +36,6 @@ export class AuthController {
   }
 
   @Public()
-  @Post('test-email')
-  async testEmail(@Body() body: { email: string }) {
-    await this.mailService.enviarEmail({
-      para: body.email,
-      assunto: 'Teste ScrumORA',
-      html: '<h1>Funcionou!</h1><p>Este é um email de teste do ScrumORA.</p>',
-      texto: 'Funcionou! Este é um email de teste do ScrumORA.',
-    });
-    return { ok: true };
-  }
-
-  @Public()
   @Get('verify-email')
   async verifyEmail(@Query('token') token: string, @Res() res: Response) {
     const frontendUrl = this.configService.get<string>('FRONTEND_URL');

@@ -1,4 +1,5 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ErroDominio, ErrosUsuario } from '../common';
+import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,7 +18,7 @@ export class UsersService {
 
   async create(dto: CreateUserDto): Promise<User> {
     const existente = await this.userRepo.findOne({ where: { email: dto.email } });
-    if (existente) throw new ConflictException('E-mail já cadastrado');
+    if (existente) throw new ErroDominio(ErrosUsuario.EMAIL_EM_USO);
 
     const senhaHash = await bcrypt.hash(dto.senha, 10);
     const user = this.userRepo.create({ ...dto, senha: senhaHash });
@@ -37,7 +38,7 @@ export class UsersService {
 
   async findOne(id: number): Promise<User> {
     const user = await this.userRepo.findOne({ where: { id }});
-    if (!user) throw new NotFoundException(`Usuário ${id} não encontrado`);
+    if (!user) throw new ErroDominio(ErrosUsuario.NAO_ENCONTRADO);
     return user;
   }
 
@@ -82,6 +83,6 @@ export class UsersService {
 
   async remove(id: number) {
     const result = await this.userRepo.delete(id);
-    if (result.affected === 0) throw new NotFoundException(`Usuário ${id} não encontrado`);
+    if (result.affected === 0) throw new ErroDominio(ErrosUsuario.NAO_ENCONTRADO);
   }
 }
