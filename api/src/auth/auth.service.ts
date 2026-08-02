@@ -1,7 +1,7 @@
 import { ErroDominio, ErrosAuth } from '../common';
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login';
 import { User } from '../users/entities/user.entity';

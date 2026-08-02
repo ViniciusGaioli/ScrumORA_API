@@ -26,7 +26,7 @@ export class EmailVerificationService {
         const token = await this.jwtService.signAsync(
         { sub: user.id, purpose: 'email-verify' } satisfies VerifyPayload,
         {
-            secret: this.config.get<string>('JWT_VERIFY_SECRET'),
+            secret: this.segredoDeVerificacao(),
             expiresIn: '1h',
         },
         );
@@ -46,7 +46,7 @@ export class EmailVerificationService {
         let payload: VerifyPayload;
         try {
             payload = await this.jwtService.verifyAsync<VerifyPayload>(token, {
-                secret: this.config.get<string>('JWT_VERIFY_SECRET'),
+                secret: this.segredoDeVerificacao(),
         });
         } catch {
             throw new ErroDominio(ErrosAuth.CREDENCIAIS_INVALIDAS);
@@ -87,4 +87,15 @@ export class EmailVerificationService {
             </div>
         `;
         }
+    private segredoDeVerificacao(): string {
+        const segredo = this.config.get<string>('JWT_VERIFY_SECRET');
+
+        if (!segredo) {
+            throw new Error(
+                'JWT_VERIFY_SECRET não está definida. Sem ela, os tokens de verificação de e-mail seriam assinados com a mesma chave dos tokens de sessão.',
+            );
+        }
+
+        return segredo;
+    }
 }
