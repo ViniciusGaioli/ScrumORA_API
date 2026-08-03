@@ -2,8 +2,8 @@ import { Body, Controller, Get, HttpCode, Post, Query, Req, Res, UseGuards } fro
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login';
 import { CreateUserDto } from '../users/dto/create-user.dto';
-import { Public } from 'src/common/decorators/public.decorator';
-import { MailService } from 'src/mail/mail.service';
+import { Public } from '../common/decorators/public.decorator';
+import { MailService } from '../mail/mail.service';
 import { EmailVerificationService } from './email-verification.service';
 import { Request, Response } from 'express';
 import { User } from '../users/entities/user.entity';

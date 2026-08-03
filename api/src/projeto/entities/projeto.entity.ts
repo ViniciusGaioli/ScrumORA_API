@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { ProjetoUsuario } from '../../projeto_usuario/entities/projeto_usuario.entity';
-import { Equipe } from 'src/equipe/entities/equipe.entity';
-import { Atividade } from 'src/atividade/entities/atividade.entity';
-import { Sprint } from 'src/sprint/entities/sprint.entity';
+import { Equipe } from '../../equipe/entities/equipe.entity';
+import { Atividade } from '../../atividade/entities/atividade.entity';
+import { Sprint } from '../../sprint/entities/sprint.entity';
 
 @Entity('projeto')
 export class Projeto {

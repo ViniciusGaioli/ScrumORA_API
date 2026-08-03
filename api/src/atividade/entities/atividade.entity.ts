@@ -1,8 +1,8 @@
 import {Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany,} from 'typeorm';
 import { Projeto } from '../../projeto/entities/projeto.entity';
 import { Etapa } from '../enums/etapa.enums';
-import { Sprint } from 'src/sprint/entities/sprint.entity';
-import { AtividadeResponsavel } from 'src/atividade-responsavel/entities/atividade-responsavel.entity';
+import { Sprint } from '../../sprint/entities/sprint.entity';
+import { AtividadeResponsavel } from '../../atividade-responsavel/entities/atividade-responsavel.entity';
 @Entity('atividade')
 export class Atividade {
     @PrimaryGeneratedColumn({ type: 'int' })

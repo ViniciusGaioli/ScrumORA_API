@@ -4,7 +4,7 @@ import { Equipe } from './entities/equipe.entity';
 import { Projeto } from '../projeto/entities/projeto.entity';
 import { EquipeService } from './equipe.service';
 import { EquipeController } from './equipe.controller';
-import { User } from 'src/users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Equipe, Projeto, User])],

@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Atividade } from './entities/atividade.entity';
 import { Projeto } from '../projeto/entities/projeto.entity';
-import { Sprint } from 'src/sprint/entities/sprint.entity';
+import { Sprint } from '../sprint/entities/sprint.entity';
 import { CreateAtividadeDto } from './dto/create-atividade.dto';
 import { UpdateAtividadeDto } from './dto/update-atividade.dto';
 

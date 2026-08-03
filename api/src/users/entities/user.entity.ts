@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany } from 'typeorm';
 import { ProjetoUsuario } from '../../projeto_usuario/entities/projeto_usuario.entity';
-import { Equipe } from 'src/equipe/entities/equipe.entity';
-import { AtividadeResponsavel } from 'src/atividade-responsavel/entities/atividade-responsavel.entity';
+import { Equipe } from '../../equipe/entities/equipe.entity';
+import { AtividadeResponsavel } from '../../atividade-responsavel/entities/atividade-responsavel.entity';
 
 @Entity('usuario')
 export class User {
