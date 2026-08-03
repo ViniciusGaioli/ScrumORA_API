@@ -1,52 +1,39 @@
+import { Inject, Injectable } from '@nestjs/common';
 import { ErroDominio, ErrosSprint } from '../common';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Sprint } from './entities/sprint.entity';
-import { Projeto } from '../projeto/entities/projeto.entity';
 import { CreateSprintDto } from './dto/create-sprint.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
+import { SPRINT_REPOSITORY, type SprintRepository } from './sprint.repository';
 
 @Injectable()
 export class SprintService {
   constructor(
-    @InjectRepository(Sprint)
-    private readonly sprintRepo: Repository<Sprint>,
-    @InjectRepository(Projeto)
-    private readonly projetoRepo: Repository<Projeto>,
+    @Inject(SPRINT_REPOSITORY)
+    private readonly repositorio: SprintRepository,
   ) {}
 
   async create(projetoId: number, dto: CreateSprintDto): Promise<Sprint> {
-    const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
-    if (!projeto) {
+    if (!(await this.repositorio.projetoExiste(projetoId))) {
       throw new ErroDominio(ErrosSprint.NAO_ENCONTRADA);
     }
 
     this.validarDatas(dto.dataInicio, dto.dataFim);
 
-    const sprint = this.sprintRepo.create({
+    return this.repositorio.criar({
+      projetoId,
       nome: dto.nome,
       dataInicio: new Date(dto.dataInicio),
       dataFim: new Date(dto.dataFim),
       status: dto.status,
-      projeto,
     });
-
-    return this.sprintRepo.save(sprint);
   }
 
   findAll(projetoId: number): Promise<Sprint[]> {
-    return this.sprintRepo.find({
-      where: { projeto: { id: projetoId } },
-      relations: ['projeto'],
-    });
+    return this.repositorio.listarPorProjeto(projetoId);
   }
 
   async findOne(projetoId: number, id: number): Promise<Sprint> {
-    const sprint = await this.sprintRepo.findOne({
-      where: { id, projeto: { id: projetoId } },
-      relations: ['projeto', 'atividades'],
-    });
+    const sprint = await this.repositorio.buscarNoProjeto(projetoId, id);
     if (!sprint) throw new ErroDominio(ErrosSprint.NAO_ENCONTRADA);
     return sprint;
   }
@@ -61,14 +48,12 @@ export class SprintService {
 
     this.validarDatas(sprint.dataInicio, sprint.dataFim);
 
-    return this.sprintRepo.save(sprint);
+    return this.repositorio.salvar(sprint);
   }
 
   async remove(projetoId: number, id: number): Promise<void> {
-    const result = await this.sprintRepo.delete({ id, projeto: { id: projetoId } });
-    if (result.affected === 0) {
-      throw new ErroDominio(ErrosSprint.NAO_ENCONTRADA);
-    }
+    const removeu = await this.repositorio.remover(projetoId, id);
+    if (!removeu) throw new ErroDominio(ErrosSprint.NAO_ENCONTRADA);
   }
 
   private validarDatas(inicio: string | Date, fim: string | Date): void {
