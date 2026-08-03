@@ -1,83 +1,61 @@
+import { Inject, Injectable } from '@nestjs/common';
 import { ErroDominio, ErrosAtividade } from '../common';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Atividade } from './entities/atividade.entity';
-import { Projeto } from '../projeto/entities/projeto.entity';
 import { Sprint } from '../sprint/entities/sprint.entity';
 import { CreateAtividadeDto } from './dto/create-atividade.dto';
 import { UpdateAtividadeDto } from './dto/update-atividade.dto';
+import { ATIVIDADE_REPOSITORY, type AtividadeRepository } from './atividade.repository';
 
 @Injectable()
 export class AtividadeService {
   constructor(
-    @InjectRepository(Atividade)
-    private readonly atividadeRepo: Repository<Atividade>,
-    @InjectRepository(Projeto)
-    private readonly projetoRepo: Repository<Projeto>,
-    @InjectRepository(Sprint)
-    private readonly sprintRepo: Repository<Sprint>,
+    @Inject(ATIVIDADE_REPOSITORY)
+    private readonly repositorio: AtividadeRepository,
   ) {}
 
-  async create(projetoId: number,dto: CreateAtividadeDto): Promise<Atividade> {
-    const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
-    if (!projeto) {
+  async create(projetoId: number, dto: CreateAtividadeDto): Promise<Atividade> {
+    if (!(await this.repositorio.projetoExiste(projetoId))) {
       throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
     }
 
-    let sprint: Sprint | undefined;
     if (dto.sprintId !== undefined) {
-      const s = await this.sprintRepo.findOne({ where: { id: dto.sprintId } });
-      if (!s) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
-      sprint = s;
+      const sprint = await this.repositorio.buscarSprintNoProjeto(projetoId, dto.sprintId);
+      if (!sprint) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
     }
 
     this.validarDatas(dto.dataInicio, dto.dataFim);
 
-    const atividade = this.atividadeRepo.create({
+    return this.repositorio.criar({
+      projetoId,
       nome: dto.nome,
       descricao: dto.descricao,
       dataInicio: new Date(dto.dataInicio),
       dataFim: new Date(dto.dataFim),
       etapa: dto.etapa,
       arquivada: dto.arquivada,
-      projeto,
-      sprint,
+      sprintId: dto.sprintId,
     });
-
-    return this.atividadeRepo.save(atividade);
   }
 
   findAll(projetoId: number): Promise<Atividade[]> {
-    return this.atividadeRepo.find({
-      where: { projeto: { id: projetoId }, arquivada: false },
-      relations: ['sprint', 'responsaveis', 'responsaveis.usuario', 'responsaveis.equipe'],
-    });
+    return this.repositorio.listarPorProjeto(projetoId);
   }
 
   async findOne(projetoId: number, id: number): Promise<Atividade> {
-    const atividade = await this.atividadeRepo.findOne({
-      where: { id, projeto: { id: projetoId } },
-      relations: ['projeto'],
-    });
+    const atividade = await this.repositorio.buscarNoProjeto(projetoId, id);
     if (!atividade) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
     return atividade;
   }
 
   async update(projetoId: number, id: number, dto: UpdateAtividadeDto): Promise<Atividade> {
-    const atividade = await this.atividadeRepo.findOne({
-      where: { id, projeto: { id: projetoId } },
-      relations: ['projeto', 'sprint'],
-    });
+    const atividade = await this.repositorio.buscarNoProjeto(projetoId, id, true);
     if (!atividade) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
 
     if (dto.sprintId !== undefined) {
       if (dto.sprintId === null) {
         (atividade as { sprint: Sprint | null }).sprint = null;
       } else {
-        const sprint = await this.sprintRepo.findOne({
-          where: { id: dto.sprintId, projeto: { id: projetoId } },
-        });
+        const sprint = await this.repositorio.buscarSprintNoProjeto(projetoId, dto.sprintId);
         if (!sprint) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
         atividade.sprint = sprint;
       }
@@ -95,26 +73,24 @@ export class AtividadeService {
       new Date(atividade.dataFim).toISOString(),
     );
 
-    return this.atividadeRepo.save(atividade);
+    return this.repositorio.salvar(atividade);
   }
 
   async arquivar(projetoId: number, id: number): Promise<Atividade> {
     const atividade = await this.findOne(projetoId, id);
     atividade.arquivada = true;
-    return this.atividadeRepo.save(atividade);
+    return this.repositorio.salvar(atividade);
   }
 
   async desarquivar(projetoId: number, id: number): Promise<Atividade> {
     const atividade = await this.findOne(projetoId, id);
     atividade.arquivada = false;
-    return this.atividadeRepo.save(atividade);
+    return this.repositorio.salvar(atividade);
   }
 
   async remove(projetoId: number, id: number): Promise<void> {
-    const result = await this.atividadeRepo.delete({ id, projeto: { id: projetoId } });
-    if (result.affected === 0) {
-      throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
-    }
+    const removeu = await this.repositorio.remover(projetoId, id);
+    if (!removeu) throw new ErroDominio(ErrosAtividade.NAO_ENCONTRADA);
   }
 
   private validarDatas(inicio: string, fim: string): void {
