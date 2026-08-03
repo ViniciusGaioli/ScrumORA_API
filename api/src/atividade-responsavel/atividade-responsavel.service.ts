@@ -1,25 +1,17 @@
+import { Inject, Injectable } from '@nestjs/common';
 import { ErroDominio, ErrosResponsavel } from '../common';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
 import { AtividadeResponsavel } from './entities/atividade-responsavel.entity';
-import { Atividade } from '../atividade/entities/atividade.entity';
-import { User } from '../users/entities/user.entity';
-import { Equipe } from '../equipe/entities/equipe.entity';
 import { CreateAtividadeResponsavelDto } from './dto/create-atividade-responsavel.dto';
+import {
+  ATIVIDADE_RESPONSAVEL_REPOSITORY,
+  type AtividadeResponsavelRepository,
+} from './atividade-responsavel.repository';
 
 @Injectable()
 export class AtividadeResponsavelService {
   constructor(
-    @InjectRepository(AtividadeResponsavel)
-    private readonly arRepo: Repository<AtividadeResponsavel>,
-    @InjectRepository(Atividade)
-    private readonly atividadeRepo: Repository<Atividade>,
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
-    @InjectRepository(Equipe)
-    private readonly equipeRepo: Repository<Equipe>,
-    private readonly dataSource: DataSource,
+    @Inject(ATIVIDADE_RESPONSAVEL_REPOSITORY)
+    private readonly repositorio: AtividadeResponsavelRepository,
   ) {}
 
   async create(dto: CreateAtividadeResponsavelDto): Promise<AtividadeResponsavel[]> {
@@ -30,100 +22,47 @@ export class AtividadeResponsavelService {
       throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
     }
 
-    const atividade = await this.atividadeRepo.findOne({ where: { id: dto.atividadeId } });
-    if (!atividade) {
+    if (!(await this.repositorio.atividadeExiste(dto.atividadeId))) {
       throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
     }
 
-    let usuarios: User[] = [];
-    if (usuarioIds.length > 0) {
-      usuarios = await this.userRepo.find({ where: { id: In(usuarioIds) } });
-      if (usuarios.length !== usuarioIds.length) {
-        const encontrados = usuarios.map((u) => u.id);
-        const faltando = usuarioIds.filter((id) => !encontrados.includes(id));
-        throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
-      }
+    const usuariosExistentes = await this.repositorio.idsDeUsuariosExistentes(usuarioIds);
+    if (usuariosExistentes.length !== usuarioIds.length) {
+      throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
     }
 
-    let equipes: Equipe[] = [];
-    if (equipeIds.length > 0) {
-      equipes = await this.equipeRepo.find({ where: { id: In(equipeIds) } });
-      if (equipes.length !== equipeIds.length) {
-        const encontrados = equipes.map((e) => e.id);
-        const faltando = equipeIds.filter((id) => !encontrados.includes(id));
-        throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
-      }
+    const equipesExistentes = await this.repositorio.idsDeEquipesExistentes(equipeIds);
+    if (equipesExistentes.length !== equipeIds.length) {
+      throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
     }
-    const jaExistentes = await this.arRepo.find({
-      where: { atividade: { id: dto.atividadeId } },
-      relations: ['usuario', 'equipe'],
-    });
 
-    const usuariosJa = jaExistentes.filter((r) => r.usuario).map((r) => r.usuario!.id);
-    const equipesJa = jaExistentes.filter((r) => r.equipe).map((r) => r.equipe!.id);
+    const jaVinculados = await this.repositorio.listarPorAtividade(dto.atividadeId);
+    const usuariosJa = jaVinculados.filter(r => r.usuario).map(r => r.usuario!.id);
+    const equipesJa = jaVinculados.filter(r => r.equipe).map(r => r.equipe!.id);
 
-    const usuariosDuplicados = usuarioIds.filter((id) => usuariosJa.includes(id));
-    const equipesDuplicadas = equipeIds.filter((id) => equipesJa.includes(id));
+    const duplicado =
+      usuarioIds.some(id => usuariosJa.includes(id)) ||
+      equipeIds.some(id => equipesJa.includes(id));
 
-    if (usuariosDuplicados.length > 0 || equipesDuplicadas.length > 0) {
-      const msgs: string[] = [];
-      if (usuariosDuplicados.length > 0) {
-        msgs.push(`usuários já responsáveis: ${usuariosDuplicados.join(', ')}`);
-      }
-      if (equipesDuplicadas.length > 0) {
-        msgs.push(`equipes já responsáveis: ${equipesDuplicadas.join(', ')}`);
-      }
+    if (duplicado) {
       throw new ErroDominio(ErrosResponsavel.VINCULO_DUPLICADO);
     }
 
-    const novos: AtividadeResponsavel[] = [
-      ...usuarios.map((u) => this.arRepo.create({ atividade, usuario: u })),
-      ...equipes.map((e) => this.arRepo.create({ atividade, equipe: e })),
-    ];
-
-    return this.dataSource.transaction(async (manager) => {
-      return manager.save(AtividadeResponsavel, novos);
-    });
-  }
-
-  findAll(): Promise<AtividadeResponsavel[]> {
-    return this.arRepo.find({ relations: ['atividade', 'usuario', 'equipe'] });
+    return this.repositorio.vincular(dto.atividadeId, usuarioIds, equipeIds);
   }
 
   async findOne(id: number): Promise<AtividadeResponsavel> {
-    const ar = await this.arRepo.findOne({
-      where: { id },
-      relations: ['atividade', 'usuario', 'equipe'],
-    });
-    if (!ar) throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
-    return ar;
+    const vinculo = await this.repositorio.buscar(id);
+    if (!vinculo) throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
+    return vinculo;
   }
 
   findByAtividade(atividadeId: number): Promise<AtividadeResponsavel[]> {
-    return this.arRepo.find({
-      where: { atividade: { id: atividadeId } },
-      relations: ['usuario', 'equipe'],
-    });
-  }
-
-  findByUsuario(usuarioId: number): Promise<AtividadeResponsavel[]> {
-    return this.arRepo.find({
-      where: { usuario: { id: usuarioId } },
-      relations: ['atividade'],
-    });
-  }
-
-  findByEquipe(equipeId: number): Promise<AtividadeResponsavel[]> {
-    return this.arRepo.find({
-      where: { equipe: { id: equipeId } },
-      relations: ['atividade'],
-    });
+    return this.repositorio.listarPorAtividade(atividadeId);
   }
 
   async remove(id: number): Promise<void> {
-    const result = await this.arRepo.delete(id);
-    if (result.affected === 0) {
-      throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
-    }
+    const removeu = await this.repositorio.remover(id);
+    if (!removeu) throw new ErroDominio(ErrosResponsavel.NAO_ENCONTRADO);
   }
 }

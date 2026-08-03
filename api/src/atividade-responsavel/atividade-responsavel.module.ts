@@ -6,6 +6,8 @@ import { User } from '../users/entities/user.entity';
 import { Equipe } from '../equipe/entities/equipe.entity';
 import { ProjetoUsuario } from '../projeto_usuario/entities/projeto_usuario.entity';
 import { AtividadeResponsavelService } from './atividade-responsavel.service';
+import { ATIVIDADE_RESPONSAVEL_REPOSITORY } from './atividade-responsavel.repository';
+import { AtividadeResponsavelTypeOrmRepository } from './atividade-responsavel.typeorm.repository';
 import { AtividadeResponsavelAccess } from './atividade-responsavel.access';
 import { AtividadeResponsavelController } from './atividade-responsavel.controller';
 
@@ -14,7 +16,14 @@ import { AtividadeResponsavelController } from './atividade-responsavel.controll
     TypeOrmModule.forFeature([AtividadeResponsavel, Atividade, User, Equipe, ProjetoUsuario]),
   ],
   controllers: [AtividadeResponsavelController],
-  providers: [AtividadeResponsavelService, AtividadeResponsavelAccess],
+  providers: [
+    AtividadeResponsavelService,
+    AtividadeResponsavelAccess,
+    {
+      provide: ATIVIDADE_RESPONSAVEL_REPOSITORY,
+      useClass: AtividadeResponsavelTypeOrmRepository,
+    },
+  ],
   exports: [AtividadeResponsavelService],
 })
 export class AtividadeResponsavelModule {}
