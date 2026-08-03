@@ -1,50 +1,37 @@
-import { ErroDominio, ErrosConvite } from '../common';
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { ConfigService } from '@nestjs/config';
-import { Convite } from './entities/convite.entity';
-import { Projeto } from '../projeto/entities/projeto.entity';
-import { ProjetoUsuario } from '../projeto_usuario/entities/projeto_usuario.entity';
-import { User } from '../users/entities/user.entity';
+import { ErroDominio, ErrosConvite } from '../common';
 import { Papel } from '../projeto_usuario/enums/papel.enum';
 import { MailService } from '../mail/mail.service';
+import { CONVITE_REPOSITORY, type ConviteRepository } from './convite.repository';
+
+const VALIDADE_MS = 7 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class ConviteService {
     constructor(
-        @InjectRepository(Convite)
-        private readonly conviteRepo: Repository<Convite>,
-        @InjectRepository(Projeto)
-        private readonly projetoRepo: Repository<Projeto>,
-        @InjectRepository(ProjetoUsuario)
-        private readonly puRepo: Repository<ProjetoUsuario>,
-        @InjectRepository(User)
-        private readonly userRepo: Repository<User>,
+        @Inject(CONVITE_REPOSITORY)
+        private readonly repositorio: ConviteRepository,
         private readonly mailService: MailService,
         private readonly config: ConfigService,
     ) {}
 
     async criarConvite(projetoId: number, email?: string): Promise<{ token: string; link: string }> {
-        const projeto = await this.projetoRepo.findOne({ where: { id: projetoId } });
+        const projeto = await this.repositorio.buscarProjeto(projetoId);
         if (!projeto) throw new ErroDominio(ErrosConvite.INVALIDO);
 
         const token = randomUUID();
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-        const convite = this.conviteRepo.create({
+        await this.repositorio.criar({
+            projetoId,
             token,
-            projeto,
             email: email ?? null,
             papel: Papel.DEVELOPER,
-            expiresAt,
-            usadoEm: null,
+            expiresAt: new Date(Date.now() + VALIDADE_MS),
         });
-        await this.conviteRepo.save(convite);
 
-        const frontendUrl = this.config.get<string>('FRONTEND_URL');
-        const link = `${frontendUrl}/convite/${token}`;
+        const link = `${this.config.get<string>('FRONTEND_URL')}/convite/${token}`;
 
         if (email) {
             await this.mailService.enviarEmail({
@@ -58,32 +45,26 @@ export class ConviteService {
         return { token, link };
     }
 
-    async aceitarConvite(token: string, userId: number): Promise<{ projetoId: number; nomeProjeto: string }> {
-        const convite = await this.conviteRepo.findOne({
-            where: { token },
-            relations: ['projeto'],
-        });
+    async aceitarConvite(
+        token: string,
+        userId: number,
+    ): Promise<{ projetoId: number; nomeProjeto: string }> {
+        const convite = await this.repositorio.buscarPorToken(token);
 
         if (!convite) throw new ErroDominio(ErrosConvite.INVALIDO);
         if (convite.usadoEm) throw new ErroDominio(ErrosConvite.INVALIDO);
         if (new Date() > convite.expiresAt) throw new ErroDominio(ErrosConvite.INVALIDO);
 
-        const jaExiste = await this.puRepo.findOne({
-            where: { usuario: { id: userId }, projeto: { id: convite.projeto.id } },
-        });
+        const projetoId = convite.projeto.id;
 
-        if (!jaExiste) {
-            const usuario = await this.userRepo.findOne({ where: { id: userId } });
-            if (!usuario) throw new ErroDominio(ErrosConvite.INVALIDO);
+        if (!(await this.repositorio.participaDoProjeto(userId, projetoId))) {
+            const vinculou = await this.repositorio.vincularAoProjeto(userId, projetoId, convite.papel);
+            if (!vinculou) throw new ErroDominio(ErrosConvite.INVALIDO);
 
-            const pu = this.puRepo.create({ usuario, projeto: convite.projeto, papel: convite.papel });
-            await this.puRepo.save(pu);
-
-            convite.usadoEm = new Date();
-            await this.conviteRepo.save(convite);
+            await this.repositorio.marcarComoUsado(convite);
         }
 
-        return { projetoId: convite.projeto.id, nomeProjeto: convite.projeto.nome };
+        return { projetoId, nomeProjeto: convite.projeto.nome };
     }
 
     private buildConviteHtml(nomeProjeto: string, link: string): string {

@@ -6,10 +6,15 @@ import { ProjetoUsuario } from '../projeto_usuario/entities/projeto_usuario.enti
 import { User } from '../users/entities/user.entity';
 import { ConviteService } from './convite.service';
 import { ConviteController } from './convite.controller';
+import { CONVITE_REPOSITORY } from './convite.repository';
+import { ConviteTypeOrmRepository } from './convite.typeorm.repository';
 
 @Module({
     imports: [TypeOrmModule.forFeature([Convite, Projeto, ProjetoUsuario, User])],
-    providers: [ConviteService],
+    providers: [
+        ConviteService,
+        { provide: CONVITE_REPOSITORY, useClass: ConviteTypeOrmRepository },
+    ],
     controllers: [ConviteController],
 })
 export class ConviteModule {}
