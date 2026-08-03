@@ -51,7 +51,7 @@ export class AuthService {
     return { message: 'Conta criada! Verifique seu email para ativar sua conta.' };
   }
 
-  async loginWithGoogle(user: User) {
+  async emitirSessao(user: User) {
     const payload = { sub: user.id, email: user.email, nome: user.nome };
     const accessToken = await this.jwtService.signAsync(payload);
     return { accessToken, user: { id: user.id, nome: user.nome, email: user.email } };
