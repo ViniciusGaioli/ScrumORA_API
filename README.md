@@ -58,33 +58,15 @@ docker compose up -d
 A API sobe em `http://localhost:3000` e o MariaDB na porta definida por
 `DB_EXTERNAL_PORT`.
 
-> **Atenção ao `JWT_VERIFY_SECRET`.** Ele assina os links de confirmação de e-mail e
-> precisa ser **diferente** do `JWT_SECRET`. Com a mesma chave, um link de confirmação
-> passa a valer como token de sessão. A aplicação falha com mensagem explícita se a
-> variável estiver ausente, em vez de degradar em silêncio.
-
 O código da aplicação fica em `api/` — é lá que está o `package.json`, e é de lá que os
 scripts npm rodam. O `docker-compose.yml` fica na raiz.
 
 ### Migrations
 
-O schema é versionado. `synchronize` está desligado — o banco não é mais alterado em
+O schema é versionado. `synchronize` está desligado, o banco não é mais alterado em
 runtime a partir das entidades.
 
-Rodando de dentro de `api/`:
-
-| Comando | O que faz |
-|---|---|
-| `npm run migration:generate -- src/migrations/Nome` | Gera a partir do diff entre entidades e banco |
-| `npm run migration:run` | Aplica as pendentes |
-| `npm run migration:revert` | Desfaz a última |
-
-As migrations rodam automaticamente na subida da aplicação (`migrationsRun: true`), então
-o fluxo normal de desenvolvimento não exige rodar nada à mão.
-
----
 
 ## Documentação
 
-`docs/DocumentaçãoAPI.pdf` traz o detalhamento das rotas com exemplos de requisição e
-resposta.
+Atualmente a documentação está desatualizada.
