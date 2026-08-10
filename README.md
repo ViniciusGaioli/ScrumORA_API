@@ -3,8 +3,8 @@
 API REST do ScrumORA, ferramenta de gestão de projetos ágeis desenvolvida como Trabalho
 de Conclusão de Curso.
 
-> **A interface web fica em [ScrumORA (frontend)](https://github.com/ViniciusGaioli/ScrumORA).**
-> É lá que está a aplicação que consome esta API.
+A interface web fica em [ScrumORA (frontend)](https://github.com/ViniciusGaioli/ScrumORA).
+É lá que está a aplicação que consome esta API.
 
 ---
 
